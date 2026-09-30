@@ -640,7 +640,7 @@ label.lbl{display:block;font-weight:700;margin:12px 0 6px;font-size:14px}
 <script>
 (() => {
 'use strict';
-const VERSION = 9;
+const VERSION = 10;
 const EMO = '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
 const FONT = '"Bricolage Grotesque",system-ui,sans-serif';
 const $ = id => document.getElementById(id);
@@ -1040,7 +1040,7 @@ let zombieLastAttack = 0;
 function startZombieMode() {
   if (G || view) { setStatus('Quitte d’abord la partie en cours.'); return; }
   zombieMode = true;
-  zombieState = { wave:1, lives:3, zombies:[], spawnLeft:4, spawnTimer:.25, betweenWave:0, score:0, gameOver:false, hitFlash:0, shake:0 };
+  zombieState = { wave:1, lives:3, zombies:[], spawnLeft:4, spawnTimer:.25, betweenWave:0, score:0, gameOver:false, hitFlash:0, shake:0 }; zombieNav.timer=0; zombieNav.targetCell=-1;
 
   /* Le mode Zombie est une surcouche de la vraie partie : même carte, mêmes pôles,
      mêmes PNJ, même économie, mêmes objets, mêmes livraisons et même journée. */
@@ -1066,96 +1066,426 @@ function exitZombieMode() {
   $('zombieHud').style.display='none'; $('zombieExit').style.display='none'; $('menu').hidden=false; setStatus(''); refreshPodium();
 }
 function zombieSpawnPoint(){
-  /* Porte réelle : le mur droit est ouvert sur y≈52..160. */
-  return {x:1419+Math.random()*12,y:78+Math.random()*72};
+  /* Entrée réelle de la ressourcerie : les zombies apparaissent dehors,
+     exactement face au passage du mur est. */
+  return {x:1418+Math.random()*10,y:68+Math.random()*82};
 }
+
+/* ------------------------------------------------------------------
+   Navigation Zombie
+   ------------------------------------------------------------------
+   Le vieux déplacement suivait simplement la ligne droite vers le joueur.
+   Sur cette carte cela suffisait à coincer les zombies contre les murs.
+   On construit donc un champ de navigation BFS à intervalles réguliers.
+   Tous les zombies suivent ensuite la même route vers le joueur.
+------------------------------------------------------------------- */
+const zombieNav = {
+  cell:44,
+  cols:Math.ceil(W/44),
+  rows:Math.ceil(H/44),
+  dist:null,
+  next:null,
+  timer:0,
+  targetCell:-1
+};
+zombieNav.dist = new Int32Array(zombieNav.cols*zombieNav.rows);
+zombieNav.next = new Int32Array(zombieNav.cols*zombieNav.rows);
+
+function zombieCell(cx,cy){
+  return cy*zombieNav.cols+cx;
+}
+function zombieCellXY(id){
+  return {x:id%zombieNav.cols,y:Math.floor(id/zombieNav.cols)};
+}
+function zombieCellCenter(cx,cy){
+  return {
+    x:clamp(cx*zombieNav.cell+zombieNav.cell*.5, 30, W-30),
+    y:clamp(cy*zombieNav.cell+zombieNav.cell*.5, 30, H-30)
+  };
+}
+function zombieFreeCell(cx,cy){
+  cx=clamp(cx,0,zombieNav.cols-1); cy=clamp(cy,0,zombieNav.rows-1);
+  const id=zombieCell(cx,cy);
+  const p=zombieCellCenter(cx,cy);
+  if(zombieCanMove(p.x,p.y,13)) return id;
+  for(let radius=1;radius<5;radius++){
+    for(let oy=-radius;oy<=radius;oy++){
+      for(let ox=-radius;ox<=radius;ox++){
+        if(Math.abs(ox)!==radius && Math.abs(oy)!==radius) continue;
+        const nx=cx+ox,ny=cy+oy;
+        if(nx<0||ny<0||nx>=zombieNav.cols||ny>=zombieNav.rows) continue;
+        const q=zombieCellCenter(nx,ny);
+        if(zombieCanMove(q.x,q.y,13)) return zombieCell(nx,ny);
+      }
+    }
+  }
+  return -1;
+}
+function zombieRebuildNav(force=false){
+  if(!zombieMode || !view) return;
+  zombieNav.timer-=force?1:0;
+  if(!force && zombieNav.timer>0) return;
+  zombieNav.timer=.32;
+
+  const tc=zombieFreeCell(Math.floor(me.x/zombieNav.cell),Math.floor(me.y/zombieNav.cell));
+  if(tc<0) return;
+  if(!force && tc===zombieNav.targetCell && zombieNav.dist[tc]>=0) return;
+  zombieNav.targetCell=tc;
+  zombieNav.dist.fill(-1);
+  zombieNav.next.fill(-1);
+
+  const q=new Int32Array(zombieNav.cols*zombieNav.rows);
+  let head=0,tail=0;
+  q[tail++]=tc;
+  zombieNav.dist[tc]=0;
+
+  /* 8 directions : les zombies ne marchent pas en escaliers. */
+  const dirs=[
+    [-1,0],[1,0],[0,-1],[0,1],
+    [-1,-1],[1,-1],[-1,1],[1,1]
+  ];
+  while(head<tail){
+    const cur=q[head++];
+    const c=zombieCellXY(cur);
+    for(const [ox,oy] of dirs){
+      const nx=c.x+ox,ny=c.y+oy;
+      if(nx<0||ny<0||nx>=zombieNav.cols||ny>=zombieNav.rows) continue;
+      const ni=zombieCell(nx,ny);
+      if(zombieNav.dist[ni]>=0) continue;
+
+      /* Pour une diagonale, vérifie aussi les deux cases orthogonales :
+         cela évite de "couper" un coin de mur. */
+      if(ox!==0 && oy!==0){
+        const a=zombieCell(c.x+ox,c.y), b=zombieCell(c.x,c.y+oy);
+        const pa=zombieCellCenter(c.x+ox,c.y), pb=zombieCellCenter(c.x,c.y+oy);
+        if(zombieNav.dist[a]<0 && !zombieCanMove(pa.x,pa.y,13)) continue;
+        if(zombieNav.dist[b]<0 && !zombieCanMove(pb.x,pb.y,13)) continue;
+      }
+
+      const p=zombieCellCenter(nx,ny);
+      if(!zombieCanMove(p.x,p.y,13)) continue;
+      zombieNav.dist[ni]=zombieNav.dist[cur]+1;
+      q[tail++]=ni;
+      zombieNav.next[ni]=cur;
+    }
+  }
+}
+function zombieDirection(z){
+  const cx=clamp(Math.floor(z.x/zombieNav.cell),0,zombieNav.cols-1);
+  const cy=clamp(Math.floor(z.y/zombieNav.cell),0,zombieNav.rows-1);
+  const id=zombieCell(cx,cy);
+  const ni=zombieNav.next[id];
+
+  if(ni>=0){
+    const p=zombieCellXY(ni);
+    const c=zombieCellCenter(p.x,p.y);
+    return {x:c.x,y:c.y,valid:true};
+  }
+  return {x:me.x,y:me.y,valid:false};
+}
+
 function zombieCanMove(x,y,r=15){
   if(x<28||y<28||x>W-28||y>H-28)return false;
-  if((!view||!view.gate)&&hitRect(x,y,r,GATE))return false;
+  /* En mode Zombie le rideau de l'entrée est volontairement ouvert. */
   if(view&&view.veh&&hitRect(x,y,r,{x:view.veh.x-22,y:view.veh.y-30,w:44,h:60}))return false;
   if(cityHit(x,y,r))return false;
   return !solids.some(b=>hitRect(x,y,r,b));
 }
+
 function zombieTryMove(z,nx,ny){
   const r=z.r||15;
   if(zombieCanMove(nx,ny,r)){z.x=nx;z.y=ny;return true;}
   if(zombieCanMove(nx,z.y,r)){z.x=nx;return true;}
   if(zombieCanMove(z.x,ny,r)){z.y=ny;return true;}
-  const dx=nx-z.x,dy=ny-z.y,len=Math.hypot(dx,dy)||1,ux=dx/len,uy=dy/len;
-  const side=[[uy,-ux],[-uy,ux],[(ux+uy)*.7,(uy-ux)*.7],[(ux-uy)*.7,(uy+ux)*.7]];
-  for(const [sx,sy] of side){const d=.7*z.speed/60;if(zombieCanMove(z.x+sx*d,z.y+sy*d,r)){z.x+=sx*d;z.y+=sy*d;return true;}}
+
+  /* Petit contournement local si le chemin traverse un angle. */
+  const dx=nx-z.x,dy=ny-z.y,len=Math.hypot(dx,dy)||1;
+  const ux=dx/len,uy=dy/len;
+  const slide=.55*z.speed*1/60;
+  const options=[
+    [uy,-ux],[-uy,ux],
+    [(ux+uy)*.707,(uy-ux)*.707],
+    [(ux-uy)*.707,(uy+ux)*.707]
+  ];
+  for(const [sx,sy] of options){
+    const px=z.x+sx*slide,py=z.y+sy*slide;
+    if(zombieCanMove(px,py,r)){z.x=px;z.y=py;return true;}
+  }
   return false;
 }
+
 function zombieSpawn(){
   if(!zombieState||!zombieMode)return;
   const p=zombieSpawnPoint();
-  zombieState.zombies.push({id:Math.random().toString(36).slice(2),x:p.x,y:p.y,r:15,hp:1,
-    speed:50+zombieState.wave*3+Math.random()*16,attackCd:0,walk:Math.random()*Math.PI*2,
-    attackAnim:0,hit:0,spawnAnim:.55,deathAnim:0,alive:true});
+  zombieState.zombies.push({
+    id:Math.random().toString(36).slice(2),
+    x:p.x,y:p.y,r:15,
+    hp:1,
+    speed:54+zombieState.wave*3+Math.random()*14,
+    attackCd:0,
+    walk:Math.random()*Math.PI*2,
+    dir:Math.PI,
+    attackAnim:0,
+    hit:0,
+    spawnAnim:.45,
+    deathAnim:0,
+    alive:true,
+    stuck:0
+  });
   zombieState.spawnLeft--;
 }
+
 function zombieNearest(range=96){
-  if(!zombieState)return null; let best=null,bestD=Infinity;
-  for(const z of zombieState.zombies){if(!z.alive)continue;const d=Math.hypot(z.x-me.x,z.y-me.y);if(d<=range&&d<bestD){best=z;bestD=d;}}
+  if(!zombieState)return null;
+  let best=null,bestD=Infinity;
+  for(const z of zombieState.zombies){
+    if(!z.alive)continue;
+    const d=Math.hypot(z.x-me.x,z.y-me.y);
+    if(d<=range&&d<bestD){best=z;bestD=d;}
+  }
   return best;
 }
+
 function zombieAttack(){
   if(!zombieMode||!zombieState||zombieState.gameOver)return false;
-  const now=performance.now(); if(now-zombieLastAttack<260)return false; zombieLastAttack=now;
-  const best=zombieNearest(96); if(!best){S('drop');return false;}
-  best.alive=false; best.hp=0; best.hit=.42; best.deathAnim=.42; zombieState.score++; fxAll(best.x,best.y,'+1','ok'); S('ok'); return true;
+  const now=performance.now();
+  if(now-zombieLastAttack<260)return false;
+  zombieLastAttack=now;
+  const best=zombieNearest(96);
+  if(!best){S('drop');return false;}
+
+  best.alive=false;
+  best.hp=0;
+  best.hit=.42;
+  best.deathAnim=.42;
+  zombieState.score++;
+  fxAll(best.x,best.y,'+1','ok');
+  S('ok');
+  return true;
 }
+
 function updateZombie(dt){
-  const zt=zombieState; if(!zombieMode||!zt)return; if(zt.gameOver)return;
-  if(zt.spawnLeft>0){zt.spawnTimer-=dt;if(zt.spawnTimer<=0){zombieSpawn();zt.spawnTimer=Math.max(.5,1.08-zt.wave*.025);}}
-  let alive=0;
-  for(const z of zt.zombies){
-    if(!z.alive){z.hit=Math.max(0,z.hit-dt);z.deathAnim=Math.max(0,z.deathAnim-dt);continue;}
-    alive++; z.attackCd=Math.max(0,z.attackCd-dt); z.attackAnim=Math.max(0,z.attackAnim-dt); z.hit=Math.max(0,z.hit-dt); z.spawnAnim=Math.max(0,z.spawnAnim-dt);
-    const dx=me.x-z.x,dy=me.y-z.y,d=Math.hypot(dx,dy)||1,ux=dx/d,uy=dy/d,step=z.speed*dt,ox=z.x,oy=z.y;
-    zombieTryMove(z,z.x+ux*step,z.y+uy*step);
-    const moved=Math.hypot(z.x-ox,z.y-oy); if(moved>.05)z.walk+=dt*(8+moved*.08);
-    const contact=Math.hypot(me.x-z.x,me.y-z.y);
-    if(contact<36&&z.attackCd<=0){
-      z.attackCd=1.05;z.attackAnim=.32;zt.lives--;zt.hitFlash=.32;zt.shake=.26;S('bad');
-      const bx=z.x-ux*62,by=z.y-uy*62;if(zombieCanMove(bx,by,z.r)){z.x=bx;z.y=by;}
-      if(zt.lives<=0){zt.gameOver=true;G.paused=true;$('actionBtn').textContent='Échap  QUITTER';showToast('💀 La ressourcerie est envahie ! Score : '+zt.score,false);}
+  const zt=zombieState;
+  if(!zombieMode||!zt)return;
+  if(zt.gameOver)return;
+
+  zombieRebuildNav();
+
+  if(zt.spawnLeft>0){
+    zt.spawnTimer-=dt;
+    if(zt.spawnTimer<=0){
+      zombieSpawn();
+      zt.spawnTimer=Math.max(.48,1.0-zt.wave*.022);
     }
   }
+
+  let alive=0;
+  for(const z of zt.zombies){
+    if(!z.alive){
+      z.hit=Math.max(0,z.hit-dt);
+      z.deathAnim=Math.max(0,z.deathAnim-dt);
+      continue;
+    }
+
+    alive++;
+    z.attackCd=Math.max(0,z.attackCd-dt);
+    z.attackAnim=Math.max(0,z.attackAnim-dt);
+    z.hit=Math.max(0,z.hit-dt);
+    z.spawnAnim=Math.max(0,z.spawnAnim-dt);
+
+    const route=zombieDirection(z);
+    let dx=route.x-z.x,dy=route.y-z.y;
+    let d=Math.hypot(dx,dy)||1;
+
+    /* A proximité, on vise directement le joueur pour une arrivée propre. */
+    if(Math.hypot(me.x-z.x,me.y-z.y)<zombieNav.cell*1.35){
+      dx=me.x-z.x; dy=me.y-z.y; d=Math.hypot(dx,dy)||1;
+    }
+
+    dx/=d;dy/=d;
+    const oldX=z.x,oldY=z.y;
+    const moved=zombieTryMove(z,z.x+dx*z.speed*dt,z.y+dy*z.speed*dt);
+
+    if(moved){
+      const md=Math.hypot(z.x-oldX,z.y-oldY);
+      if(md>.03){
+        z.dir=Math.atan2(z.y-oldY,z.x-oldX);
+        z.walk+=dt*(9+md*.12);
+        z.stuck=0;
+      } else z.stuck+=dt;
+    } else {
+      z.stuck+=dt;
+    }
+
+    /* Si un zombie reste coincé, on recalcule immédiatement la route. */
+    if(z.stuck>.22){
+      zombieRebuildNav(true);
+      const retry=zombieDirection(z);
+      const rdx=retry.x-z.x,rdy=retry.y-z.y,rd=Math.hypot(rdx,rdy)||1;
+      zombieTryMove(z,z.x+(rdx/rd)*z.speed*dt,z.y+(rdy/rd)*z.speed*dt);
+      z.stuck=0;
+    }
+
+    const contact=Math.hypot(me.x-z.x,me.y-z.y);
+    if(contact<35&&z.attackCd<=0){
+      z.attackCd=1.05;
+      z.attackAnim=.34;
+      zt.lives--;
+      zt.hitFlash=.32;
+      zt.shake=.26;
+      S('bad');
+
+      const push=62;
+      const px=z.x-(me.x-z.x)/(contact||1)*push;
+      const py=z.y-(me.y-z.y)/(contact||1)*push;
+      if(zombieCanMove(px,py,z.r)){z.x=px;z.y=py;}
+      else if(zombieCanMove(z.x+(z.x-me.x)*1.2,z.y,z.r)) z.x += (z.x-me.x)*1.2;
+      else if(zombieCanMove(z.x,z.y+(z.y-me.y)*1.2,z.r)) z.y += (z.y-me.y)*1.2;
+
+      if(zt.lives<=0){
+        zt.gameOver=true;
+        G.paused=true;
+        $('actionBtn').textContent='Échap  QUITTER';
+        showToast('💀 La ressourcerie est envahie ! Score : '+zt.score,false);
+      }
+    }
+  }
+
   zt.zombies=zt.zombies.filter(z=>z.alive||z.deathAnim>0||z.hit>0);
+
   if(zt.spawnLeft===0&&alive===0&&!zt.gameOver){
     zt.betweenWave+=dt;
-    if(zt.betweenWave>=1.5){zt.wave++;zt.spawnLeft=Math.min(4+zt.wave*2,28);zt.spawnTimer=.15;zt.betweenWave=0;toastAll('🧟 Vague '+zt.wave+' ! '+zt.spawnLeft+' zombies arrivent.');}
+    if(zt.betweenWave>=1.5){
+      zt.wave++;
+      zt.spawnLeft=Math.min(4+zt.wave*2,28);
+      zt.spawnTimer=.15;
+      zt.betweenWave=0;
+      zombieRebuildNav(true);
+      toastAll('🧟 Vague '+zt.wave+' ! '+zt.spawnLeft+' zombies arrivent.');
+    }
   }
-  zt.hitFlash=Math.max(0,zt.hitFlash-dt);zt.shake=Math.max(0,zt.shake-dt);updateZombieHud();
+
+  zt.hitFlash=Math.max(0,zt.hitFlash-dt);
+  zt.shake=Math.max(0,zt.shake-dt);
+  updateZombieHud();
 }
+
 function updateZombieHud(){
   if(!zombieState)return;
-  $('zWave').textContent=zombieState.wave; $('zLives').textContent=zombieState.lives;
+  $('zWave').textContent=zombieState.wave;
+  $('zLives').textContent=zombieState.lives;
   $('zLeft').textContent=zombieState.zombies.filter(z=>z.alive).length+zombieState.spawnLeft;
 }
+
 function drawZombieOne(z){
-  const now=performance.now()/1000,bob=Math.sin(z.walk)*2.2,fade=z.alive?1:Math.max(0,z.deathAnim/.42);
-  const scale=z.spawnAnim>0?1.05-.55*(z.spawnAnim/.55):1,dx=me.x-z.x,dy=me.y-z.y,a=Math.atan2(dy,dx)+Math.PI/2;
-  const swing=Math.sin(z.walk*1.15)*6,attackPush=z.attackAnim>0?Math.sin((.32-z.attackAnim)/.32*Math.PI)*9:0;
-  ctx.save();ctx.translate(z.x,z.y+bob);ctx.rotate(a);ctx.globalAlpha=fade;ctx.scale(scale,scale*(z.alive?1:.8));
-  ctx.save();ctx.rotate(-a);ctx.fillStyle='rgba(0,0,0,.28)';ctx.beginPath();ctx.ellipse(0,20,15,5,0,0,Math.PI*2);ctx.fill();ctx.restore();
-  ctx.strokeStyle='#263329';ctx.lineWidth=6;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(-5,10);ctx.lineTo(-7+swing*.35,23);ctx.moveTo(5,10);ctx.lineTo(7-swing*.35,23);ctx.stroke();
-  ctx.strokeStyle='#56764c';ctx.lineWidth=7;ctx.beginPath();ctx.moveTo(-12,-3);ctx.lineTo(-19-swing*.45,-3+attackPush);ctx.moveTo(12,-3);ctx.lineTo(19+swing*.45,-3+attackPush);ctx.stroke();
-  ctx.fillStyle='#54724d';rr(-12,-7,24,26,7);ctx.fill();ctx.fillStyle='rgba(255,255,255,.18)';ctx.fillRect(-4,-5,3,20);
-  ctx.fillStyle='#7f9b70';ctx.beginPath();ctx.arc(0,-18,11,0,Math.PI*2);ctx.fill();ctx.fillStyle='#111';ctx.beginPath();ctx.arc(-4,-19,2,0,Math.PI*2);ctx.arc(4,-19,2,0,Math.PI*2);ctx.fill();
-  ctx.strokeStyle='#263329';ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,-15,5,.15,Math.PI-.15);ctx.stroke();
-  if(z.hit>0){ctx.strokeStyle='rgba(255,70,70,'+Math.min(1,z.hit/.42)+')';ctx.lineWidth=4;ctx.beginPath();ctx.arc(0,-5,19,0,Math.PI*2);ctx.stroke();}
+  const now=performance.now()/1000;
+  const fade=z.alive?1:Math.max(0,z.deathAnim/.42);
+  const fall=z.alive?0:(1-fade)*10;
+  const bob=z.alive?Math.sin(z.walk)*1.2:0;
+  const swing=Math.sin(z.walk)*5.5;
+  const attack=z.attackAnim>0?Math.sin((.34-z.attackAnim)/.34*Math.PI)*7:0;
+
+  ctx.save();
+  ctx.translate(z.x,z.y+bob+fall);
+  ctx.globalAlpha=fade;
+
+  /* Ombre bien collée au sol. */
+  ctx.fillStyle='rgba(0,0,0,.30)';
+  ctx.beginPath();
+  ctx.ellipse(0,17,16,5,0,0,Math.PI*2);
+  ctx.fill();
+
+  /* Pieds animés. */
+  ctx.strokeStyle='#263329';
+  ctx.lineWidth=6;
+  ctx.lineCap='round';
+  ctx.beginPath();
+  ctx.moveTo(-5,7); ctx.lineTo(-7+swing*.35,19);
+  ctx.moveTo(5,7); ctx.lineTo(7-swing*.35,19);
+  ctx.stroke();
+
+  /* Bras qui oscillent pendant la marche et partent en avant pendant l'attaque. */
+  ctx.strokeStyle='#54734d';
+  ctx.lineWidth=7;
+  ctx.beginPath();
+  ctx.moveTo(-12,-2); ctx.lineTo(-19-swing*.4,-3+attack);
+  ctx.moveTo(12,-2); ctx.lineTo(19+swing*.4,-3+attack);
+  ctx.stroke();
+
+  /* Corps. */
+  ctx.fillStyle='#4f704c';
+  rr(-12,-9,24,23,7); ctx.fill();
+
+  /* Tête. */
+  ctx.fillStyle='#83a06f';
+  ctx.beginPath(); ctx.arc(0,-18,11,0,Math.PI*2); ctx.fill();
+
+  /* Visage. */
+  ctx.fillStyle='#151916';
+  ctx.beginPath(); ctx.arc(-4,-19,2,0,Math.PI*2); ctx.arc(4,-19,2,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle='#263329'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.arc(0,-15,5,.15,Math.PI-.15); ctx.stroke();
+
+  /* Liseré de dégât. */
+  if(z.hit>0){
+    ctx.strokeStyle='rgba(255,70,70,'+Math.min(1,z.hit/.42)+')';
+    ctx.lineWidth=4;
+    ctx.beginPath(); ctx.arc(0,-8,19,0,Math.PI*2); ctx.stroke();
+  }
+
+  /* Petit badge d'apparition. */
+  if(z.spawnAnim>0){
+    ctx.globalAlpha*=clamp(z.spawnAnim/.45,0,1);
+    ctx.strokeStyle='rgba(224,168,0,.7)';
+    ctx.lineWidth=2;
+    ctx.beginPath(); ctx.arc(0,2,22+(1-z.spawnAnim/.45)*8,0,Math.PI*2); ctx.stroke();
+  }
+
   ctx.restore();
-  if(z.alive&&z.spawnAnim<=0){ctx.save();ctx.strokeStyle='rgba(255,205,80,.35)';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(z.x,z.y,18+Math.sin(now*5+z.walk)*2,0,Math.PI*2);ctx.stroke();ctx.restore();}
+
+  /* Direction / cible discrète. */
+  if(z.alive && Math.hypot(me.x-z.x,me.y-z.y)<96){
+    ctx.save();
+    ctx.globalAlpha=.13;
+    ctx.strokeStyle='#fff'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.arc(z.x,z.y,19+Math.sin(now*5+z.walk)*2,0,Math.PI*2); ctx.stroke();
+    ctx.restore();
+  }
 }
+
 function drawZombieMode(now){
-  const zt=zombieState;if(!zt||!zombieMode)return;
-  for(const z of zt.zombies)drawZombieOne(z);
-  const near=zombieNearest(96);if(near){ctx.save();ctx.globalAlpha=.16;ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.beginPath();ctx.arc(me.x,me.y,96,0,Math.PI*2);ctx.stroke();ctx.restore();}
-  if(zt.hitFlash>0){ctx.save();ctx.fillStyle='rgba(210,25,25,'+Math.min(.3,zt.hitFlash)+')';ctx.fillRect(camX,camY,vw,vh);ctx.restore();}
-  if(zt.gameOver){ctx.save();ctx.fillStyle='rgba(0,0,0,.58)';ctx.fillRect(camX,camY,vw,vh);text('RESSOURCERIE ENVAHIE',me.x,me.y-80,34,'#fff',900);text('Score : '+zt.score+' · Vague : '+zt.wave,me.x,me.y-34,20,'#fff',800);text('Échap ou bouton Quitter',me.x,me.y+8,16,'#fff',700);ctx.restore();}
+  const zt=zombieState;
+  if(!zt||!zombieMode)return;
+
+  for(const z of zt.zombies) drawZombieOne(z);
+
+  const near=zombieNearest(96);
+  if(near){
+    ctx.save();
+    ctx.globalAlpha=.15;
+    ctx.strokeStyle='#fff'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.arc(me.x,me.y,96,0,Math.PI*2); ctx.stroke();
+    ctx.restore();
+  }
+
+  if(zt.hitFlash>0){
+    ctx.save();
+    ctx.fillStyle='rgba(210,25,25,'+Math.min(.30,zt.hitFlash)+')';
+    ctx.fillRect(camX,camY,vw,vh);
+    ctx.restore();
+  }
+
+  if(zt.gameOver){
+    ctx.save();
+    ctx.fillStyle='rgba(0,0,0,.58)';
+    ctx.fillRect(camX,camY,vw,vh);
+    text('RESSOURCERIE ENVAHIE',me.x,me.y-80,34,'#fff',900);
+    text('Score : '+zt.score+' · Vague : '+zt.wave,me.x,me.y-34,20,'#fff',800);
+    text('Échap ou bouton Quitter',me.x,me.y+8,16,'#fff',700);
+    ctx.restore();
+  }
 }
+
 addEventListener('keydown', () => SND.init(), { capture: true });
 
 /* =================== RÉSEAU =================== */
@@ -5428,7 +5758,7 @@ requestAnimationFrame(frame);
 })();
 </script>
 
-<div id="game-version" aria-label="Version du jeu">(1.5.0)</div>
+<div id="game-version" aria-label="Version du jeu">(1.5.1)</div>
 <style>
 #game-version {
   position: fixed;
