@@ -382,28 +382,103 @@ label.lbl{display:block;font-weight:700;margin:12px 0 6px;font-size:14px}
 }
 
 
-/* ===== Animation d'ouverture des fenêtres des pôles ===== */
-@keyframes poleWindowIn {
-  0% { opacity: 0; transform: translateY(12px) scale(.96); }
-  65% { opacity: 1; transform: translateY(-2px) scale(1.01); }
-  100% { opacity: 1; transform: translateY(0) scale(1); }
+/* ===== v1.5.0 : fenêtres des mini-jeux + Apport dynamique ===== */
+@keyframes poleWindowInPro {
+  0%   { opacity:0; transform:translateY(22px) scale(.92) rotateX(4deg); filter:blur(7px); }
+  55%  { opacity:1; transform:translateY(-5px) scale(1.015) rotateX(0); filter:blur(0); }
+  78%  { transform:translateY(2px) scale(.995); }
+  100% { opacity:1; transform:translateY(0) scale(1); filter:none; }
 }
-@keyframes poleContentIn {
-  0% { opacity: 0; transform: translateY(7px); }
-  100% { opacity: 1; transform: translateY(0); }
+@keyframes poleHeaderInPro {
+  0% { opacity:0; transform:translateY(-8px); }
+  100% { opacity:1; transform:translateY(0); }
+}
+@keyframes poleContentInPro {
+  0% { opacity:0; transform:translateY(12px); }
+  100% { opacity:1; transform:translateY(0); }
+}
+@keyframes apportPulse {
+  0%,100% { box-shadow:0 0 0 0 rgba(224,168,0,0); }
+  50% { box-shadow:0 0 0 7px rgba(224,168,0,.11); }
+}
+@keyframes apportScan {
+  0% { transform:translateX(-105%); }
+  100% { transform:translateX(105%); }
+}
+@keyframes apportPop {
+  0% { opacity:0; transform:scale(.88) translateY(8px); }
+  65% { opacity:1; transform:scale(1.02) translateY(-1px); }
+  100% { opacity:1; transform:scale(1) translateY(0); }
+}
+@keyframes apportGood {
+  0% { transform:scale(1); }
+  45% { transform:scale(1.045); }
+  100% { transform:scale(1); }
+}
+@keyframes apportBad {
+  15%,45%,75% { transform:translateX(-6px); }
+  30%,60%,90% { transform:translateX(6px); }
 }
 .pole-window-animated {
-  animation: poleWindowIn .24s cubic-bezier(.2,.8,.25,1) both;
-  transform-origin: center center;
+  animation:poleWindowInPro .34s cubic-bezier(.18,.9,.23,1) both;
+  transform-origin:center center;
 }
-.pole-window-animated .pole-window-content {
-  animation: poleContentIn .28s ease-out .06s both;
+.pole-window-animated header { animation:poleHeaderInPro .28s ease-out .08s both; }
+.pole-window-animated .pole-window-content > * { animation:poleContentInPro .30s ease-out .11s both; }
+.pole-window-animated .pole-window-content > *:nth-child(2){animation-delay:.15s}
+.pole-window-animated .pole-window-content > *:nth-child(3){animation-delay:.19s}
+.pole-window-animated .pole-window-content > *:nth-child(4){animation-delay:.23s}
+
+.apport-game{display:grid;gap:10px}
+.apport-top{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.apport-progress{height:8px;background:var(--panel-2);border-radius:999px;overflow:hidden;flex:1;min-width:160px}
+.apport-progress i{display:block;height:100%;width:0;background:var(--vis);transition:width .25s}
+.apport-score{font-size:13px;font-weight:800;white-space:nowrap}
+.apport-object{position:relative;display:grid;grid-template-columns:82px 1fr auto;gap:12px;align-items:center;
+  background:linear-gradient(135deg,var(--panel-2),rgba(224,168,0,.08));border:2px solid var(--line);
+  border-radius:16px;padding:14px;min-height:105px;overflow:hidden}
+.apport-object.scan-ready{animation:apportPulse 1.5s ease-in-out infinite}
+.apport-object.new-item{animation:apportPop .32s cubic-bezier(.2,.9,.3,1) both}
+.apport-object.good{animation:apportGood .28s both}
+.apport-object.bad{animation:apportBad .32s both}
+.apport-object::after{content:"";position:absolute;inset:-20% auto -20% -35%;width:35%;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.22),transparent);
+  transform:translateX(-120%);pointer-events:none}
+.apport-object.scanning::after{animation:apportScan .65s linear infinite}
+.apport-object .ao-emoji{font-size:60px;line-height:1;display:grid;place-items:center}
+.apport-object .ao-main strong{font-size:19px}
+.apport-object .ao-sub{margin-top:4px;line-height:1.35}
+.apport-badge{border-radius:999px;padding:6px 9px;font-size:11px;font-weight:900;background:var(--panel);
+  border:2px solid var(--line);white-space:nowrap}
+.apport-badge.scan{border-color:var(--gold)}
+.apport-badge.inspect{border-color:var(--ok)}
+.apport-hint{font-size:12px;color:var(--muted);font-weight:700;margin-top:4px}
+.apport-inspect{background:#1f2a2e;border-radius:14px;padding:12px;color:#eef4f5}
+.apport-inspect-head{display:flex;gap:8px;align-items:center;font-weight:800}
+.apport-meter{position:relative;height:38px;background:#10181c;border-radius:10px;overflow:hidden;margin-top:10px;border:1px solid rgba(255,255,255,.08)}
+.apport-target{position:absolute;top:0;bottom:0;background:rgba(53,168,119,.62);border-left:2px solid #7fe0b3;border-right:2px solid #7fe0b3}
+.apport-cursor{position:absolute;top:0;bottom:0;width:5px;background:#ffd400;box-shadow:0 0 12px #ffd400;transform:translateX(-50%)}
+.apport-meter .shine{position:absolute;inset:0;pointer-events:none;background:linear-gradient(90deg,transparent,rgba(255,255,255,.05),transparent)}
+.apport-steps{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}
+.apport-step{padding:6px 9px;border-radius:8px;background:var(--panel);font-size:12px;font-weight:800;color:var(--muted)}
+.apport-step.on{color:var(--ink);border:2px solid var(--vis);padding:4px 7px}
+.apport-step.ok{background:var(--ok);color:#fff}
+.apport-content{display:flex;gap:10px;align-items:center;background:var(--panel-2);border-radius:12px;padding:10px 12px;animation:apportPop .26s ease-out both}
+.apport-content .big{font-size:42px}
+.apport-decision{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.apport-decision .btn{min-height:48px}
+.apport-open-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}
+.apport-lock{min-height:48px;border:2px solid var(--line);background:var(--panel-2);border-radius:12px;cursor:pointer;font-weight:900}
+.apport-lock.on{border-color:var(--vis);box-shadow:0 0 0 2px rgba(255,122,0,.15)}
+.apport-lock.ok{background:var(--ok);border-color:var(--ok);color:#fff}
+.apport-lock.bad{background:var(--ko);border-color:var(--ko);color:#fff}
+@media (max-width:560px){
+  .apport-object{grid-template-columns:62px 1fr}
+  .apport-badge{grid-column:2}
 }
-@media (prefers-reduced-motion: reduce) {
-  .pole-window-animated,
-  .pole-window-animated .pole-window-content {
-    animation: none !important;
-  }
+@media (prefers-reduced-motion:reduce){
+  .pole-window-animated,.pole-window-animated header,.pole-window-animated .pole-window-content > *,
+  .apport-object,.apport-object::after,.apport-content{animation:none!important}
 }
 </style>
 </head>
@@ -565,7 +640,7 @@ label.lbl{display:block;font-weight:700;margin:12px 0 6px;font-size:14px}
 <script>
 (() => {
 'use strict';
-const VERSION = 8;
+const VERSION = 9;
 const EMO = '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
 const FONT = '"Bricolage Grotesque",system-ui,sans-serif';
 const $ = id => document.getElementById(id);
@@ -963,235 +1038,124 @@ let zombieState = null;
 let zombieLastAttack = 0;
 
 function startZombieMode() {
-  if (G || view) {
-    // Le mode zombie est lancé depuis l'accueil ; on évite de superposer deux parties.
-    setStatus('Quitte d’abord la partie en cours.');
-    return;
-  }
+  if (G || view) { setStatus('Quitte d’abord la partie en cours.'); return; }
   zombieMode = true;
-  zombieState = {
-    wave: 1,
-    lives: 3,
-    zombies: [],
-    spawnLeft: 3,
-    spawnTimer: 0.2,
-    betweenWave: 0,
-    score: 0,
-    gameOver: false,
-    hitFlash: 0
-  };
-  Object.assign(me, {
-    x: 1110, y: 650, dir: -Math.PI / 2, moving: false, running: false,
-    driving: false, veh: null, walk: 0
-  });
-  $('menu').hidden = true;
-  $('zombieHud').style.display = 'block';
-  $('zombieExit').style.display = 'block';
-  $('daybar').hidden = true;
-  $('hud').hidden = true;
-  $('actionBtn').hidden = false;
-  $('actionBtn').textContent = 'F  ATTAQUER';
-  showToast('🧟 Les zombies arrivent ! Survis aux vagues.', true);
+  zombieState = { wave:1, lives:3, zombies:[], spawnLeft:4, spawnTimer:.25, betweenWave:0, score:0, gameOver:false, hitFlash:0, shake:0 };
+
+  /* Le mode Zombie est une surcouche de la vraie partie : même carte, mêmes pôles,
+     mêmes PNJ, même économie, mêmes objets, mêmes livraisons et même journée. */
+  startSolo();
+  if (!G) { zombieMode=false; zombieState=null; return; }
+  startDay();
+  G.gate=1; G.gateT=1;
+  hostTick();
+
+  $('menu').hidden=true; $('zombieHud').style.display='block'; $('zombieExit').style.display='block';
+  $('daybar').hidden=false; $('hud').hidden=false; $('actionBtn').hidden=false;
+  showToast('🧟 Journée normale + invasion zombie : travaille et survie aux vagues !', true);
   updateZombieHud();
 }
-
 function exitZombieMode() {
-  zombieMode = false;
-  zombieState = null;
-  $('zombieHud').style.display = 'none';
-  $('zombieExit').style.display = 'none';
-  $('actionBtn').hidden = true;
-  $('menu').hidden = false;
-  setStatus('');
+  zombieMode=false; zombieState=null;
+  try{closeModal(true);}catch(e){}
+  try{clearInterval(hostTimer);}catch(e){}
+  try{net.peer&&net.peer.destroy();}catch(e){}
+  Object.assign(net,{peer:null,isHost:false,myId:null,code:'',hostConn:null}); net.conns.clear();
+  G=null; view=null; lastPhase=null; rp.clear(); npcR.clear(); fxList.length=0;
+  ['room','summary','modal','hud','daybar','actionBtn','touchBtns'].forEach(id=>$(id).hidden=true);
+  $('zombieHud').style.display='none'; $('zombieExit').style.display='none'; $('menu').hidden=false; setStatus(''); refreshPodium();
 }
-
-function zombieSpawn() {
-  // Les zombies arrivent par le rideau d'entrée, puis pénètrent dans la ressourcerie.
-  const laneY = 78 + Math.random() * 62;
-  zombieState.zombies.push({
-    id: Math.random().toString(36).slice(2),
-    x: 1360 + Math.random() * 18,
-    y: laneY,
-    hp: 1,
-    speed: 42 + zombieState.wave * 3 + Math.random() * 18,
-    attackCd: 0,
-    wobble: Math.random() * Math.PI * 2,
-    hit: 0,
-    alive: true
-  });
+function zombieSpawnPoint(){
+  /* Porte réelle : le mur droit est ouvert sur y≈52..160. */
+  return {x:1419+Math.random()*12,y:78+Math.random()*72};
+}
+function zombieCanMove(x,y,r=15){
+  if(x<28||y<28||x>W-28||y>H-28)return false;
+  if((!view||!view.gate)&&hitRect(x,y,r,GATE))return false;
+  if(view&&view.veh&&hitRect(x,y,r,{x:view.veh.x-22,y:view.veh.y-30,w:44,h:60}))return false;
+  if(cityHit(x,y,r))return false;
+  return !solids.some(b=>hitRect(x,y,r,b));
+}
+function zombieTryMove(z,nx,ny){
+  const r=z.r||15;
+  if(zombieCanMove(nx,ny,r)){z.x=nx;z.y=ny;return true;}
+  if(zombieCanMove(nx,z.y,r)){z.x=nx;return true;}
+  if(zombieCanMove(z.x,ny,r)){z.y=ny;return true;}
+  const dx=nx-z.x,dy=ny-z.y,len=Math.hypot(dx,dy)||1,ux=dx/len,uy=dy/len;
+  const side=[[uy,-ux],[-uy,ux],[(ux+uy)*.7,(uy-ux)*.7],[(ux-uy)*.7,(uy+ux)*.7]];
+  for(const [sx,sy] of side){const d=.7*z.speed/60;if(zombieCanMove(z.x+sx*d,z.y+sy*d,r)){z.x+=sx*d;z.y+=sy*d;return true;}}
+  return false;
+}
+function zombieSpawn(){
+  if(!zombieState||!zombieMode)return;
+  const p=zombieSpawnPoint();
+  zombieState.zombies.push({id:Math.random().toString(36).slice(2),x:p.x,y:p.y,r:15,hp:1,
+    speed:50+zombieState.wave*3+Math.random()*16,attackCd:0,walk:Math.random()*Math.PI*2,
+    attackAnim:0,hit:0,spawnAnim:.55,deathAnim:0,alive:true});
   zombieState.spawnLeft--;
 }
-
-function zombieTarget(z) {
-  // Ils suivent le joueur avec une légère imprécision pour donner un mouvement naturel.
-  return { x: me.x, y: me.y };
+function zombieNearest(range=96){
+  if(!zombieState)return null; let best=null,bestD=Infinity;
+  for(const z of zombieState.zombies){if(!z.alive)continue;const d=Math.hypot(z.x-me.x,z.y-me.y);if(d<=range&&d<bestD){best=z;bestD=d;}}
+  return best;
 }
-
-function zombieAttack() {
-  if (!zombieMode || !zombieState || zombieState.gameOver) return;
-  const now = performance.now();
-  if (now - zombieLastAttack < 280) return;
-  zombieLastAttack = now;
-
-  let best = null, bestD = Infinity;
-  for (const z of zombieState.zombies) {
-    if (!z.alive) continue;
-    const d = Math.hypot(z.x - me.x, z.y - me.y);
-    if (d <= 92 && d < bestD) { best = z; bestD = d; }
-  }
-
-  if (best) {
-    best.hp = 0;
-    best.alive = false;
-    best.hit = 1;
-    zombieState.score++;
-    fxAll(best.x, best.y, '+1', 'ok');
-    S('ok');
-  } else {
-    S('drop');
-  }
+function zombieAttack(){
+  if(!zombieMode||!zombieState||zombieState.gameOver)return false;
+  const now=performance.now(); if(now-zombieLastAttack<260)return false; zombieLastAttack=now;
+  const best=zombieNearest(96); if(!best){S('drop');return false;}
+  best.alive=false; best.hp=0; best.hit=.42; best.deathAnim=.42; zombieState.score++; fxAll(best.x,best.y,'+1','ok'); S('ok'); return true;
 }
-
-function updateZombie(dt) {
-  const zt = zombieState;
-  if (!zombieMode || !zt) return;
-
-  if (zt.gameOver) return;
-
-  // Déplacement du joueur.
-  let mx = 0, my = 0;
-  if (keys.has('arrowleft') || keys.has('q') || keys.has('a')) mx -= 1;
-  if (keys.has('arrowright') || keys.has('d')) mx += 1;
-  if (keys.has('arrowup') || keys.has('z') || keys.has('w')) my -= 1;
-  if (keys.has('arrowdown') || keys.has('s')) my += 1;
-  if (joy.active) { mx += joy.dx; my += joy.dy; }
-  const len = Math.hypot(mx, my);
-  if (len > 1) { mx /= len; my /= len; }
-  const moving = Math.abs(mx) + Math.abs(my) > 0.01;
-  if (moving) {
-    const sp = 225;
-    const nx = me.x + mx * sp * dt;
-    const ny = me.y + my * sp * dt;
-    // Le joueur reste dans la ressourcerie.
-    if (!playerBlocked(nx, me.y)) me.x = nx;
-    if (!playerBlocked(me.x, ny)) me.y = ny;
-    me.dir = Math.atan2(my, mx);
-    me.moving = true;
-    me.walk += sp * dt * 0.025;
-  } else {
-    me.moving = false;
-  }
-
-  // Apparition progressive de la vague.
-  if (zt.spawnLeft > 0) {
-    zt.spawnTimer -= dt;
-    if (zt.spawnTimer <= 0) {
-      zombieSpawn();
-      zt.spawnTimer = Math.max(0.45, 1.25 - zt.wave * 0.035);
+function updateZombie(dt){
+  const zt=zombieState; if(!zombieMode||!zt)return; if(zt.gameOver)return;
+  if(zt.spawnLeft>0){zt.spawnTimer-=dt;if(zt.spawnTimer<=0){zombieSpawn();zt.spawnTimer=Math.max(.5,1.08-zt.wave*.025);}}
+  let alive=0;
+  for(const z of zt.zombies){
+    if(!z.alive){z.hit=Math.max(0,z.hit-dt);z.deathAnim=Math.max(0,z.deathAnim-dt);continue;}
+    alive++; z.attackCd=Math.max(0,z.attackCd-dt); z.attackAnim=Math.max(0,z.attackAnim-dt); z.hit=Math.max(0,z.hit-dt); z.spawnAnim=Math.max(0,z.spawnAnim-dt);
+    const dx=me.x-z.x,dy=me.y-z.y,d=Math.hypot(dx,dy)||1,ux=dx/d,uy=dy/d,step=z.speed*dt,ox=z.x,oy=z.y;
+    zombieTryMove(z,z.x+ux*step,z.y+uy*step);
+    const moved=Math.hypot(z.x-ox,z.y-oy); if(moved>.05)z.walk+=dt*(8+moved*.08);
+    const contact=Math.hypot(me.x-z.x,me.y-z.y);
+    if(contact<36&&z.attackCd<=0){
+      z.attackCd=1.05;z.attackAnim=.32;zt.lives--;zt.hitFlash=.32;zt.shake=.26;S('bad');
+      const bx=z.x-ux*62,by=z.y-uy*62;if(zombieCanMove(bx,by,z.r)){z.x=bx;z.y=by;}
+      if(zt.lives<=0){zt.gameOver=true;G.paused=true;$('actionBtn').textContent='Échap  QUITTER';showToast('💀 La ressourcerie est envahie ! Score : '+zt.score,false);}
     }
   }
-
-  let alive = 0;
-  for (const z of zt.zombies) {
-    if (!z.alive) continue;
-    alive++;
-    z.hit = Math.max(0, z.hit - dt);
-    z.attackCd = Math.max(0, z.attackCd - dt);
-    z.wobble += dt * 5;
-
-    const target = zombieTarget(z);
-    let dx = target.x - z.x, dy = target.y - z.y;
-    const d = Math.hypot(dx, dy) || 1;
-    dx /= d; dy /= d;
-
-    // Mouvement vers le joueur.
-    z.x += dx * z.speed * dt;
-    z.y += dy * z.speed * dt;
-
-    // Contact = perte d'une vie, puis le zombie recule.
-    if (d < 34 && z.attackCd <= 0) {
-      z.attackCd = 1.1;
-      zt.lives--;
-      z.x -= dx * 55;
-      z.y -= dy * 55;
-      zt.hitFlash = .25;
-      S('bad');
-      if (zt.lives <= 0) {
-        zt.gameOver = true;
-        showToast('💀 La ressourcerie est envahie ! Score : ' + zt.score, false);
-      }
-    }
+  zt.zombies=zt.zombies.filter(z=>z.alive||z.deathAnim>0||z.hit>0);
+  if(zt.spawnLeft===0&&alive===0&&!zt.gameOver){
+    zt.betweenWave+=dt;
+    if(zt.betweenWave>=1.5){zt.wave++;zt.spawnLeft=Math.min(4+zt.wave*2,28);zt.spawnTimer=.15;zt.betweenWave=0;toastAll('🧟 Vague '+zt.wave+' ! '+zt.spawnLeft+' zombies arrivent.');}
   }
-
-  // Nouvelle vague quand tous les zombies sont morts et que ceux de la vague sont entrés.
-  if (zt.spawnLeft === 0 && alive === 0) {
-    zt.betweenWave += dt;
-    if (zt.betweenWave >= 1.5) {
-      zt.wave++;
-      zt.spawnLeft = Math.min(3 + zt.wave * 2, 24);
-      zt.spawnTimer = .2;
-      zt.betweenWave = 0;
-      toastAll('🧟 Vague ' + zt.wave + ' ! ' + zt.spawnLeft + ' zombies arrivent.');
-    }
-  }
-
-  zt.hitFlash = Math.max(0, zt.hitFlash - dt);
-  updateZombieHud();
+  zt.hitFlash=Math.max(0,zt.hitFlash-dt);zt.shake=Math.max(0,zt.shake-dt);updateZombieHud();
 }
-
-function updateZombieHud() {
-  if (!zombieState) return;
-  $('zWave').textContent = zombieState.wave;
-  $('zLives').textContent = zombieState.lives;
-  $('zLeft').textContent = zombieState.zombies.filter(z => z.alive).length + zombieState.spawnLeft;
-  if (zombieState.gameOver) $('actionBtn').textContent = 'Échap  QUITTER';
+function updateZombieHud(){
+  if(!zombieState)return;
+  $('zWave').textContent=zombieState.wave; $('zLives').textContent=zombieState.lives;
+  $('zLeft').textContent=zombieState.zombies.filter(z=>z.alive).length+zombieState.spawnLeft;
 }
-
-function drawZombieMode(now) {
-  const zt = zombieState;
-  if (!zt) return;
-
-  for (const z of zt.zombies) {
-    if (!z.alive && z.hit <= 0) continue;
-    const bob = Math.sin(z.wobble) * 3;
-    ctx.save();
-    if (!z.alive) ctx.globalAlpha = Math.max(0, z.hit);
-    emoji('🧟', z.x, z.y + bob, 34);
-    if (z.alive) {
-      ctx.fillStyle = 'rgba(0,0,0,.35)';
-      ctx.beginPath(); ctx.ellipse(z.x, z.y + 19, 15, 5, 0, 0, Math.PI * 2); ctx.fill();
-    }
-    ctx.restore();
-  }
-
-  drawPlayer(me.x, me.y, me.dir, me.moving ? me.walk : 0, myColor(), null);
-
-  // Indicate la portée du coup lorsque le joueur est dans le mode zombie.
-  ctx.save();
-  ctx.globalAlpha = .12;
-  ctx.strokeStyle = '#fff';
-  ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.arc(me.x, me.y, 92, 0, Math.PI * 2); ctx.stroke();
+function drawZombieOne(z){
+  const now=performance.now()/1000,bob=Math.sin(z.walk)*2.2,fade=z.alive?1:Math.max(0,z.deathAnim/.42);
+  const scale=z.spawnAnim>0?1.05-.55*(z.spawnAnim/.55):1,dx=me.x-z.x,dy=me.y-z.y,a=Math.atan2(dy,dx)+Math.PI/2;
+  const swing=Math.sin(z.walk*1.15)*6,attackPush=z.attackAnim>0?Math.sin((.32-z.attackAnim)/.32*Math.PI)*9:0;
+  ctx.save();ctx.translate(z.x,z.y+bob);ctx.rotate(a);ctx.globalAlpha=fade;ctx.scale(scale,scale*(z.alive?1:.8));
+  ctx.save();ctx.rotate(-a);ctx.fillStyle='rgba(0,0,0,.28)';ctx.beginPath();ctx.ellipse(0,20,15,5,0,0,Math.PI*2);ctx.fill();ctx.restore();
+  ctx.strokeStyle='#263329';ctx.lineWidth=6;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(-5,10);ctx.lineTo(-7+swing*.35,23);ctx.moveTo(5,10);ctx.lineTo(7-swing*.35,23);ctx.stroke();
+  ctx.strokeStyle='#56764c';ctx.lineWidth=7;ctx.beginPath();ctx.moveTo(-12,-3);ctx.lineTo(-19-swing*.45,-3+attackPush);ctx.moveTo(12,-3);ctx.lineTo(19+swing*.45,-3+attackPush);ctx.stroke();
+  ctx.fillStyle='#54724d';rr(-12,-7,24,26,7);ctx.fill();ctx.fillStyle='rgba(255,255,255,.18)';ctx.fillRect(-4,-5,3,20);
+  ctx.fillStyle='#7f9b70';ctx.beginPath();ctx.arc(0,-18,11,0,Math.PI*2);ctx.fill();ctx.fillStyle='#111';ctx.beginPath();ctx.arc(-4,-19,2,0,Math.PI*2);ctx.arc(4,-19,2,0,Math.PI*2);ctx.fill();
+  ctx.strokeStyle='#263329';ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,-15,5,.15,Math.PI-.15);ctx.stroke();
+  if(z.hit>0){ctx.strokeStyle='rgba(255,70,70,'+Math.min(1,z.hit/.42)+')';ctx.lineWidth=4;ctx.beginPath();ctx.arc(0,-5,19,0,Math.PI*2);ctx.stroke();}
   ctx.restore();
-
-  if (zt.hitFlash > 0) {
-    ctx.save();
-    ctx.fillStyle = 'rgba(220,30,30,' + Math.min(.35, zt.hitFlash) + ')';
-    ctx.fillRect(camX, camY, vw, vh);
-    ctx.restore();
-  }
-
-  if (zt.gameOver) {
-    ctx.save();
-    ctx.fillStyle = 'rgba(0,0,0,.62)';
-    ctx.fillRect(camX, camY, vw, vh);
-    text('RESSOURCERIE ENVAHIE', me.x, me.y - 80, 34, '#fff', 900);
-    text('Score : ' + zt.score + ' · Vague : ' + zt.wave, me.x, me.y - 35, 20, '#fff', 800);
-    text('Échap pour revenir à l’accueil', me.x, me.y + 10, 16, '#fff', 700);
-    ctx.restore();
-  }
+  if(z.alive&&z.spawnAnim<=0){ctx.save();ctx.strokeStyle='rgba(255,205,80,.35)';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(z.x,z.y,18+Math.sin(now*5+z.walk)*2,0,Math.PI*2);ctx.stroke();ctx.restore();}
 }
-
+function drawZombieMode(now){
+  const zt=zombieState;if(!zt||!zombieMode)return;
+  for(const z of zt.zombies)drawZombieOne(z);
+  const near=zombieNearest(96);if(near){ctx.save();ctx.globalAlpha=.16;ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.beginPath();ctx.arc(me.x,me.y,96,0,Math.PI*2);ctx.stroke();ctx.restore();}
+  if(zt.hitFlash>0){ctx.save();ctx.fillStyle='rgba(210,25,25,'+Math.min(.3,zt.hitFlash)+')';ctx.fillRect(camX,camY,vw,vh);ctx.restore();}
+  if(zt.gameOver){ctx.save();ctx.fillStyle='rgba(0,0,0,.58)';ctx.fillRect(camX,camY,vw,vh);text('RESSOURCERIE ENVAHIE',me.x,me.y-80,34,'#fff',900);text('Score : '+zt.score+' · Vague : '+zt.wave,me.x,me.y-34,20,'#fff',800);text('Échap ou bouton Quitter',me.x,me.y+8,16,'#fff',700);ctx.restore();}
+}
 addEventListener('keydown', () => SND.init(), { capture: true });
 
 /* =================== RÉSEAU =================== */
@@ -1595,6 +1559,10 @@ function startDay() {
   }
 }
 function endDay(reason) {
+  if (zombieMode) {
+    zombieMode = false; zombieState = null;
+    $('zombieHud').style.display = 'none'; $('zombieExit').style.display = 'none';
+  }
   const goal = G.goal, rev = G.revenue, success = !reason && rev >= goal;
   const stars = !success ? 0 : rev >= goal * 2 ? 3 : rev >= goal * 1.5 ? 2 : 1;
   const chs = chState(), chDone = chs.filter(c => c.done);
@@ -3234,9 +3202,17 @@ addEventListener('keydown', e => {
   const k = e.key.toLowerCase();
   if (zombieMode) {
     if (k === 'escape') { e.preventDefault(); exitZombieMode(); return; }
-    if (k === 'f' && !e.repeat) { e.preventDefault(); zombieAttack(); return; }
-    if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(k)) e.preventDefault();
+    if (k === 'f' && !e.repeat) {
+      e.preventDefault();
+      const hit = zombieAttack();
+      if (!hit && me.driving) exitTruck();
+      else if (!hit && !me.driving) doThrow();
+      return;
+    }
+    const playingZombie = view && view.phase === 'play';
+    if (playingZombie && ['arrowup','arrowdown','arrowleft','arrowright',' '].includes(k)) e.preventDefault();
     keys.add(k);
+    if (playingZombie && !e.repeat && (k === 'e' || k === ' ' || k === 'enter')) doAction();
     return;
   }
   const playing = view && view.phase === 'play';
@@ -3273,7 +3249,7 @@ $('createBtn').addEventListener('click', () => createGame());
 $('soloBtn').addEventListener('click', startSolo);
 $('zombieBtn').addEventListener('click', startZombieMode);
 $('zombieExit').addEventListener('click', exitZombieMode);
-$('actionBtn').addEventListener('click', () => { if (zombieMode) { if (zombieState && zombieState.gameOver) exitZombieMode(); else zombieAttack(); } else doAction(); });
+$('actionBtn').addEventListener('click', () => doAction());
 $('joinBtn').addEventListener('click', joinGame);
 $('startBtn').addEventListener('click', () => send({ t: 'start' }));
 $('nextBtn').addEventListener('click', () => send({ t: 'start' }));
@@ -3657,8 +3633,10 @@ function frame(now) {
   insTop += (insTopT - insTop) * fk; insBot += (insBotT - insBot) * fk;
   const playing = zombieMode || (view && view.phase === 'play');
   if (playing && !modalOpen) {
-    if (zombieMode) updateZombie(dt);
-    else update(dt);
+    if (zombieMode) {
+      if (!(zombieState && zombieState.gameOver)) update(dt);
+      updateZombie(dt);
+    } else update(dt);
   }
   if (net.isHost && G) hostFrame(now, dt);
   if (view) {
@@ -3681,10 +3659,10 @@ function frame(now) {
       if (me.driving && me.veh) m.veh = { x: me.veh.x, y: me.veh.y, a: Math.round(me.veh.a * 100) / 100, v: Math.round(me.veh.v), dmg: Math.round(me.veh.dmg) };
       send(m);
     }
-    if (!zombieMode) { computeAction(); syncThrowBtn(); }
+    computeAction(); syncThrowBtn();
   } else act = null;
   if (zombieMode) updateZombieHud();
-  else renderAction();
+  renderAction();
   draw(now / 1000, now);
   requestAnimationFrame(frame);
 }
@@ -4185,57 +4163,148 @@ function closeModal(silent) {
 const itemHead = (it, hint) => `<div class="device"><span class="big emo">${esc(it ? it.e : '📦')}</span>
   <div><strong>${esc(it ? it.n : '')}</strong><div class="muted small">${hint}</div></div></div>`;
 
-/* ----- Apport ----- */
+/* ----- Apport : contrôle de réception dynamique ----- */
 GAMES.apport = (el, api) => {
   const items = makeWave(view.players.length);
   const accepted = [];
-  let i = 0, inspected = false, busy = false, good = 0;
+  let i = 0, good = 0, busy = false, raf = 0;
+  let scanPos = 0, scanSpeed = 0.9, targetStart = 42, targetWidth = 18, scanOk = 0;
+  let phase = 'scan', lockStep = 0, lockOrder = shuffle([0,1,2]);
+
   el.innerHTML = `
-    <p class="muted small" style="margin:0">Accepte ce qui peut être valorisé, refuse ce qui est illégal ou interdit. Ouvre les contenants fermés avant de décider. (Touches I / A / R)</p>
-    <div class="muted small" id="rnd" style="margin-top:10px;font-weight:700"></div>
-    <div class="item"><span class="big emo" id="iemo"></span><div><strong id="iname"></strong><div class="muted" id="idesc"></div></div></div>
-    <div class="row">
-      <button class="btn" id="insp">🔍 Inspecter</button>
-      <button class="btn go" id="acc">✅ Accepter</button>
-      <button class="btn stop" id="ref">⛔ Refuser</button>
+    <div class="apport-game">
+      <div class="apport-top">
+        <div style="font-weight:900">🧾 Contrôle réception</div>
+        <div class="apport-score" id="apScore"></div>
+        <div class="apport-progress"><i id="apProg"></i></div>
+      </div>
+      <div class="apport-object new-item scan-ready" id="apObj">
+        <div class="ao-emoji emo" id="apEmoji">📦</div>
+        <div class="ao-main">
+          <strong id="apName">Objet</strong>
+          <div class="ao-sub muted" id="apDesc">Prépare le contrôle…</div>
+          <div class="apport-hint" id="apHint">Stoppe le scanner dans la zone verte.</div>
+        </div>
+        <div class="apport-badge scan" id="apBadge">🔎 À scanner</div>
+      </div>
+      <div class="apport-inspect" id="apInspect">
+        <div class="apport-inspect-head"><span>📡 Analyse visuelle</span><span style="margin-left:auto;font-size:12px;opacity:.75">ESPACE</span></div>
+        <div class="apport-meter">
+          <div class="apport-target" id="apTarget"></div>
+          <div class="apport-cursor" id="apCursor"></div>
+          <div class="shine"></div>
+        </div>
+        <div class="apport-steps" id="apSteps"></div>
+        <div class="row" style="margin-top:10px">
+          <button class="btn vis" id="scanBtn">📡 Scanner</button>
+          <button class="btn" id="openBtn" hidden>🔓 Ouvrir le contenant</button>
+        </div>
+      </div>
+      <div id="apContent" hidden></div>
+      <div class="apport-decision">
+        <button class="btn go" id="acc" disabled>✅ Accepter</button>
+        <button class="btn stop" id="ref" disabled>⛔ Refuser</button>
+      </div>
     </div>`;
+
   const q = s => el.querySelector(s);
-  function show() {
-    const it = items[i]; inspected = false;
-    q('#rnd').textContent = 'Objet ' + (i + 1) + ' sur ' + items.length;
-    q('#iemo').textContent = it.e; q('#iname').textContent = it.n; q('#idesc').textContent = it.d;
-    q('#insp').hidden = !it.inner;
+  const apObj=q('#apObj'), emoji=q('#apEmoji'), name=q('#apName'), desc=q('#apDesc');
+  const hint=q('#apHint'), badge=q('#apBadge'), score=q('#apScore'), prog=q('#apProg');
+  const inspect=q('#apInspect'), cursor=q('#apCursor'), target=q('#apTarget'), steps=q('#apSteps');
+  const scanBtn=q('#scanBtn'), openBtn=q('#openBtn'), content=q('#apContent'), acc=q('#acc'), ref=q('#ref');
+  const isContainer=()=>!!(items[i] && items[i].inner);
+
+  function setSteps(){
+    const labels=isContainer()?['Scanner','Contenant']:['Scanner 1','Scanner 2'];
+    steps.innerHTML=labels.map((x,n)=>`<span class="apport-step ${n<scanOk?'ok':n===scanOk?'on':''}">${n<scanOk?'✓ ':''}${x}</span>`).join('');
   }
-  function inspect() {
-    const it = items[i];
-    if (busy || !it.inner || inspected) return;
-    inspected = true; S('pop');
-    q('#iemo').textContent = it.inner.e;
-    q('#idesc').textContent = 'Contenu : ' + it.inner.n;
-    q('#insp').hidden = true;
+  function newTarget(){
+    targetWidth=Math.max(10,22-2.4*scanOk-1.2*Math.max(0,view.upg.formation||0));
+    targetStart=rand(5,94-targetWidth);
+    target.style.left=targetStart+'%'; target.style.width=targetWidth+'%';
   }
-  function decide(accept) {
-    if (busy || !api.alive) return;
-    const it = items[i];
-    if (it.inner && !inspected) api.err('Contenant fermé : il fallait l\'ouvrir avant de décider.');
-    else {
-      const src = it.inner || it;
-      if (accept === src.ok) {
-        good++;
-        if (src.ok) {
-          accepted.push({ e: src.e, n: src.n, dest: src.dest, cat: src.cat, heavy: !!src.heavy, price: src.price, rare: src.rare });
-          api.say('Accepté : direction le bac ' + POLES[src.dest].label + (src.heavy ? ', à deux' : '') + '.');
-        } else api.say('Bien vu. ' + src.why);
-      } else api.err(src.ok ? 'Refus injustifié, cet objet pouvait être valorisé.' : 'Accepté à tort. ' + src.why);
+  function loop(now){
+    if(phase==='scan'&&!busy&&api.alive){
+      const boost=1+scanOk*.16;
+      scanPos=(Math.sin((now/1000)*scanSpeed*boost*Math.PI)+1)/2*100;
+      cursor.style.left=scanPos+'%';
     }
-    busy = true;
-    setTimeout(() => { busy = false; i++; if (i >= items.length) api.done({ accepted, good }); else show(); }, 900);
+    raf=requestAnimationFrame(loop);
   }
-  q('#insp').onclick = inspect;
-  q('#acc').onclick = () => decide(true);
-  q('#ref').onclick = () => decide(false);
-  modalKey = e => { const k = e.key.toLowerCase(); if (e.repeat) return; if (k === 'i') inspect(); if (k === 'a') decide(true); if (k === 'r') decide(false); };
-  show();
+  function showItem(){
+    const it=items[i]; phase='scan'; lockStep=0; lockOrder=shuffle([0,1,2]); scanOk=0;
+    emoji.textContent=it.e; name.textContent=it.n; desc.textContent=it.d;
+    hint.textContent=isContainer()?'Scanne-le puis déverrouille les 3 attaches avant de décider.':'Stoppe le scanner dans la zone verte, deux fois.';
+    badge.textContent='🔎 À scanner'; badge.className='apport-badge scan';
+    score.textContent='Objet '+(i+1)+' / '+items.length+' · ✓ '+good;
+    prog.style.width=(i/items.length*100)+'%';
+    apObj.classList.remove('new-item','good','bad','scanning'); void apObj.offsetWidth; apObj.classList.add('new-item','scan-ready');
+    inspect.hidden=false; openBtn.hidden=true; scanBtn.hidden=false; scanBtn.disabled=false;
+    content.hidden=true; content.innerHTML=''; acc.disabled=true; ref.disabled=true; setSteps(); newTarget();
+  }
+  function scanner(){
+    if(busy||!api.alive||phase!=='scan')return;
+    const ok=scanPos>=targetStart&&scanPos<=targetStart+targetWidth;
+    if(ok){
+      scanOk++; S('small'); apObj.classList.remove('bad'); void apObj.offsetWidth; apObj.classList.add('good'); setSteps();
+      if(scanOk>=2){
+        scanBtn.disabled=true; badge.textContent='✅ Analyse terminée'; badge.className='apport-badge inspect'; apObj.classList.remove('scan-ready','scanning');
+        if(isContainer()){ phase='open'; openBtn.hidden=false; hint.textContent='Analyse OK. Ouvre le contenant pour révéler ce qu’il cache.'; }
+        else { phase='decide'; acc.disabled=false; ref.disabled=false; hint.textContent='Analyse OK. Prends maintenant la décision de réception.'; }
+      } else { hint.textContent='Bon contrôle. Le second scan est plus précis.'; newTarget(); }
+    } else {
+      api.err('Scanner hors zone : contrôle raté.'); apObj.classList.remove('bad'); void apObj.offsetWidth; apObj.classList.add('bad'); hint.textContent='Raté ! Attends le passage dans la zone verte.';
+    }
+  }
+  function startOpening(){
+    if(busy||!api.alive||phase!=='open')return;
+    phase='unlock'; openBtn.hidden=true; content.hidden=false;
+    content.innerHTML=`<div class="apport-content"><span class="big emo">${items[i].e}</span><div><strong>Contenant fermé</strong><div class="muted small">Déverrouille les 3 attaches dans le bon ordre.</div></div></div>
+      <div class="apport-open-grid" id="locks"><button class="apport-lock" data-lock="0">🔒 1</button><button class="apport-lock" data-lock="1">🔒 2</button><button class="apport-lock" data-lock="2">🔒 3</button></div>
+      <div class="apport-hint" id="lockHint">Premier verrou : repère le numéro demandé.</div>`;
+    const bs=content.querySelectorAll('.apport-lock'), lh=content.querySelector('#lockHint');
+    const refresh=()=>lh.textContent=lockStep>=3?'✅ Contenant ouvert.':'Verrou suivant : '+(lockOrder[lockStep]+1)+' · ne te trompe pas.';
+    refresh();
+    bs.forEach(btn=>btn.onclick=()=>{
+      if(!api.alive||phase!=='unlock'||busy)return;
+      const picked=+btn.dataset.lock;
+      if(picked!==lockOrder[lockStep]){
+        btn.classList.remove('bad'); void btn.offsetWidth; btn.classList.add('bad'); api.err('Mauvais verrou : la séquence repart à zéro.'); lockStep=0;
+        bs.forEach(b=>{b.classList.remove('on','ok');b.textContent='🔒 '+(+b.dataset.lock+1);}); refresh(); return;
+      }
+      btn.classList.add('on'); lockStep++;
+      if(lockStep>=3){
+        bs.forEach(b=>{b.disabled=true;b.classList.remove('on');b.classList.add('ok');b.textContent='✓';});
+        const inner=items[i].inner;
+        setTimeout(()=>{
+          if(!api.alive)return;
+          badge.textContent='👀 Contenu inspecté'; badge.className='apport-badge inspect';
+          content.innerHTML=`<div class="apport-content"><span class="big emo">${inner.e}</span><div><strong>${esc(inner.n)}</strong><div class="muted small">Contenu découvert. Tu peux enfin décider.</div></div></div>`;
+          phase='decide'; acc.disabled=false; ref.disabled=false; hint.textContent='Décide selon le contenu réellement découvert.';
+        },260);
+      } else refresh();
+    });
+  }
+  function decide(accept){
+    if(busy||!api.alive||phase!=='decide')return;
+    const it=items[i], src=it.inner||it, correct=accept===src.ok; busy=true;
+    if(correct){
+      good++;
+      if(src.ok){
+        accepted.push({e:src.e,n:src.n,dest:src.dest,cat:src.cat,heavy:!!src.heavy,price:src.price,rare:src.rare});
+        api.say('Réception validée : direction le bac '+POLES[src.dest].label+(src.heavy?' · manutention à deux': '')+'.');
+      } else api.say('Refus justifié : '+src.why);
+      apObj.classList.remove('good'); void apObj.offsetWidth; apObj.classList.add('good');
+    } else {
+      api.err(src.ok?'Cet objet pouvait être valorisé.':'Accepté à tort : '+src.why);
+      apObj.classList.remove('bad'); void apObj.offsetWidth; apObj.classList.add('bad');
+    }
+    setTimeout(()=>{busy=false;i++;if(i>=items.length){prog.style.width='100%';api.done({accepted,good});}else showItem();},650);
+  }
+  scanBtn.onclick=()=>scanner(); openBtn.onclick=()=>startOpening(); acc.onclick=()=>decide(true); ref.onclick=()=>decide(false);
+  modalKey=e=>{if(e.repeat)return;const k=e.key.toLowerCase();if(k===' '||k==='enter'){e.preventDefault();if(phase==='scan')scanner();}else if(k==='o'&&phase==='open')startOpening();else if(k==='a')decide(true);else if(k==='r')decide(false);};
+  apObj.addEventListener('pointerdown',()=>apObj.classList.add('scanning')); apObj.addEventListener('pointerup',()=>apObj.classList.remove('scanning')); apObj.addEventListener('pointercancel',()=>apObj.classList.remove('scanning'));
+  showItem(); raf=requestAnimationFrame(loop); return()=>cancelAnimationFrame(raf);
 };
 
 /* ----- DEEE : tester ----- */
@@ -5359,7 +5428,7 @@ requestAnimationFrame(frame);
 })();
 </script>
 
-<div id="game-version" aria-label="Version du jeu">(1.3.2)</div>
+<div id="game-version" aria-label="Version du jeu">(1.5.0)</div>
 <style>
 #game-version {
   position: fixed;
