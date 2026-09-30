@@ -3669,7 +3669,9 @@ function openStation(stId, ctxData) {
     say(msg) { if (!sess.alive || sess.faking) return; $('mFb').textContent = '✓ ' + msg; $('mFb').className = 'fb ok'; S('small'); },
     get alive() { return sess.alive && !sess.faking; },
   };
-  cleanup = GAMES[stId]($('mBody'), api, ctxData || {}) || null;
+  const variantKey = itemVariantKey(stId, ctxData && ctxData.item);
+  const gameFn = variantKey && ITEM_GAMES[variantKey] ? ITEM_GAMES[variantKey] : GAMES[stId];
+  cleanup = gameFn($('mBody'), api, ctxData || {}) || null;
 }
 function closeModal(silent) {
   if (!modalOpen) return;
@@ -4143,6 +4145,290 @@ GAMES.caisse = (el, api, ctx) => {
     else { api.err(given > change ? 'Tu rends trop.' : 'Il manque de la monnaie.'); given = 0; gv.textContent = 0; }
   };
 };
+
+
+/* =================== VARIANTES D'OBJETS : mini-jeux contextualisés ===================
+   Chaque objet peut maintenant proposer une tâche différente au sein de son pôle.
+   Les variantes utilisent le même contrat GAMES(st, element, api, ctx).
+*/
+const ITEM_GAMES = {};
+
+/* ----- DEEE : variantes par appareil ----- */
+ITEM_GAMES.deee_tv = (el, api, ctx) => {
+  const channels = shuffle(['TF1', 'France 2', 'M6', 'Arte', 'France 5', 'TMC']).slice(0, 4);
+  const order = channels.slice().sort((a,b) => a.localeCompare(b, 'fr'));
+  let pos = 0;
+  el.innerHTML = itemHead(ctx.item, 'Téléviseur : remets les chaînes dans l’ordre croissant de la télécommande.') +
+    `<div class="row" id="tvch">${shuffle(channels).map(c => `<button class="btn vis" data-c="${esc(c)}">📺 ${esc(c)}</button>`).join('')}</div>
+     <div class="muted small" style="margin-top:8px">Chaîne suivante : <strong id="next">${esc(order[0])}</strong></div>`;
+  el.querySelectorAll('[data-c]').forEach(b => b.onclick = () => {
+    if (!api.alive) return;
+    if (b.dataset.c === order[pos]) {
+      b.disabled = true; b.classList.add('go'); pos++; S('small');
+      el.querySelector('#next').textContent = order[pos] || 'Terminé !';
+      if (pos >= order.length) api.done();
+    } else api.err('Mauvaise chaîne : vérifie l’ordre.');
+  });
+};
+
+ITEM_GAMES.deee_printer = (el, api, ctx) => {
+  const slots = shuffle(['A', 'B', 'C', 'D']);
+  let next = 0;
+  el.innerHTML = itemHead(ctx.item, 'Imprimante : retire le bourrage papier dans le bon ordre, du bac vers la sortie.') +
+    `<div class="box" id="paper">${slots.map((s,i) => `<button class="btn" data-s="${s}">📄 Feuille ${s}</button>`).join('')}</div>
+     <div class="muted small">Étape : <strong id="pnext">1 / 4</strong></div>`;
+  const correct = slots.slice().reverse();
+  el.querySelectorAll('[data-s]').forEach(b => b.onclick = () => {
+    if (!api.alive) return;
+    if (b.dataset.s === correct[next]) {
+      b.disabled = true; b.classList.add('go'); next++; S('pop');
+      el.querySelector('#pnext').textContent = next + ' / 4';
+      if (next === 4) api.done();
+    } else api.err('Tu tires la mauvaise feuille : risque de déchirer le papier.');
+  });
+};
+
+ITEM_GAMES.deee_pc = (el, api, ctx) => {
+  const ports = shuffle(['USB', 'HDMI', 'ALIM', 'AUDIO']);
+  const mapping = { USB:'🔌', HDMI:'🖥️', ALIM:'⚡', AUDIO:'🎧' };
+  let done = 0;
+  el.innerHTML = itemHead(ctx.item, 'Ordinateur : branche chaque câble sur le bon port.') +
+    `<div class="row" id="ports">${ports.map(p => `<button class="btn vis" data-p="${p}">${mapping[p]} ${p}</button>`).join('')}</div>
+     <div class="row" id="cables">${ports.map(p => `<button class="btn" data-c="${p}">Câble ${p}</button>`).join('')}</div>
+     <div class="muted small">Choisis un câble puis son port.</div>`;
+  let selected = null;
+  el.querySelectorAll('[data-c]').forEach(b => b.onclick = () => {
+    selected = b.dataset.c; el.querySelectorAll('[data-c]').forEach(x => x.classList.remove('go')); b.classList.add('go');
+  });
+  el.querySelectorAll('[data-p]').forEach(b => b.onclick = () => {
+    if (!api.alive || !selected) return;
+    if (b.dataset.p === selected) {
+      b.disabled = true; const cb = el.querySelector(`[data-c="${selected}"]`); if (cb) cb.disabled = true;
+      selected = null; done++; S('small'); if (done === ports.length) api.done();
+    } else api.err('Mauvais port : vérifie la forme et le symbole.');
+  });
+};
+
+ITEM_GAMES.deee_coffee = (el, api, ctx) => {
+  const target = randi(3, 5);
+  let level = 0;
+  el.innerHTML = itemHead(ctx.item, 'Cafetière : effectue le détartrage sans dépasser la quantité recommandée.') +
+    `<div class="gauge"><div class="gzone" style="left:${target/7*100 - 7}%;width:14%"></div><div class="gneedle"></div></div>
+     <div class="ticks"><span>0</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6 L</span></div>
+     <button class="btn vis" id="pour">☕ Ajouter du détartrant</button>
+     <div class="muted small" id="dose">Dose : 0 / ${target}</div>`;
+  const needle = el.querySelector('.gneedle'), dose = el.querySelector('#dose');
+  el.querySelector('#pour').onclick = () => {
+    if (!api.alive) return;
+    level += .7 + Math.random() * .8;
+    needle.style.left = clamp(level / 7 * 100, 0, 100) + '%';
+    dose.textContent = 'Dose : ' + level.toFixed(1) + ' / ' + target;
+    if (level > target + .8) { api.err('Trop de produit : recommence le dosage.'); level = 0; needle.style.left = '0%'; }
+    else if (level >= target - .35) api.done();
+  };
+};
+
+ITEM_GAMES.deee_radio = (el, api, ctx) => {
+  const seq = shuffle(['AM','FM','DAB','FM']).slice(0,3);
+  let i = 0;
+  el.innerHTML = itemHead(ctx.item, 'Radio : sélectionne les modes indiqués par le bon de contrôle, dans l’ordre.') +
+    `<div class="muted small">Mode demandé : <strong id="mode">${seq[0]}</strong></div>
+     <div class="row">${['AM','FM','DAB'].map(x => `<button class="btn" data-m="${x}">📻 ${x}</button>`).join('')}</div>`;
+  el.querySelectorAll('[data-m]').forEach(b => b.onclick = () => {
+    if (!api.alive) return;
+    if (b.dataset.m === seq[i]) { i++; S('click'); if (i >= seq.length) api.done(); else el.querySelector('#mode').textContent = seq[i]; }
+    else api.err('Mauvais mode : suis la séquence.');
+  });
+};
+
+/* ----- Jouets : variantes ----- */
+ITEM_GAMES.jouets_robot = (el, api, ctx) => {
+  const seq = shuffle(['🔴','🔵','🟢','🟡']);
+  let i = 0;
+  el.innerHTML = itemHead(ctx.item, 'Robot : remets les piles dans le bon ordre de couleur.') +
+    `<div class="row">${seq.map((x,j) => `<button class="btn vis" data-i="${j}">${x}</button>`).join('')}</div>
+     <div class="muted small">Séquence : ${seq.join(' → ')}</div>`;
+  const wanted = shuffle(seq);
+  el.querySelectorAll('[data-i]').forEach(b => b.onclick = () => {
+    if (!api.alive) return;
+    const x = seq[+b.dataset.i];
+    if (x === wanted[i]) { b.disabled = true; i++; S('small'); if (i === wanted.length) api.done(); }
+    else api.err('Pile mal placée.');
+  });
+};
+
+ITEM_GAMES.jouets_train = (el, api, ctx) => {
+  const rails = shuffle(['↗','→','↘','←','↙']);
+  let i = 0;
+  el.innerHTML = itemHead(ctx.item, 'Train en bois : reconstitue la voie en suivant le plan.') +
+    `<div class="box" id="railbox">${rails.map((r,j) => `<button class="btn" data-r="${j}">${r}</button>`).join('')}</div>
+     <div class="muted small">Ordre à suivre : ${rails.join(' ')}</div>`;
+  const correct = rails.slice();
+  el.querySelectorAll('[data-r]').forEach(b => b.onclick = () => {
+    if (!api.alive) return;
+    if (rails[+b.dataset.r] === correct[i]) { b.disabled=true; i++; S('small'); if(i===correct.length) api.done(); }
+    else api.err('Cette pièce ne correspond pas à l’étape suivante.');
+  });
+};
+
+ITEM_GAMES.jouets_dino = (el, api, ctx) => {
+  let found = 0;
+  el.innerHTML = itemHead(ctx.item, 'Dinosaure : vérifie les articulations et clique celles qui bougent correctement.') +
+    `<div class="row">${['🦖 Tête','🦖 Patte AV G','🦖 Patte AV D','🦖 Patte AR G','🦖 Patte AR D'].map((x,i)=>`<button class="btn" data-j="${i}">${x}</button>`).join('')}</div>
+     <div class="muted small">Il y a 3 articulations à valider.</div>`;
+  const good = new Set(shuffle([0,1,2,3,4]).slice(0,3));
+  el.querySelectorAll('[data-j]').forEach(b => b.onclick = () => {
+    if (!api.alive || b.disabled) return;
+    const ok = good.has(+b.dataset.j);
+    b.disabled = true;
+    if (ok) { b.classList.add('go'); found++; S('screw'); if(found===3) api.done(); }
+    else api.err('Cette articulation est trop dure : à contrôler.');
+  });
+};
+
+/* ----- Textile : variantes ----- */
+ITEM_GAMES.textile_fold = (el, api, ctx) => {
+  const clothes = shuffle(['👕','👖','🧥','👗','🧣']);
+  let i = 0;
+  el.innerHTML = itemHead(ctx.item, 'Plie les vêtements dans l’ordre demandé pour préparer le rayon.') +
+    `<div class="muted small">Ordre : ${clothes.join(' → ')}</div><div class="row" id="fold">${shuffle(clothes).map((x,j)=>`<button class="btn" data-i="${j}">${x}</button>`).join('')}</div>`;
+  el.querySelectorAll('[data-i]').forEach(b => b.onclick = () => {
+    if (!api.alive) return;
+    if (clothes[i] === clothes[+b.dataset.i]) { b.disabled=true; i++; S('small'); if(i===clothes.length) api.done(); }
+    else api.err('Pas ce vêtement maintenant.');
+  });
+};
+
+ITEM_GAMES.textile_zip = (el, api, ctx) => {
+  let pos = 0;
+  const holes = shuffle([...Array(8).keys()]);
+  el.innerHTML = itemHead(ctx.item, 'Vêtement : ferme la fermeture éclair en suivant les crans sans en sauter.') +
+    `<div class="row">${holes.map((x,j)=>`<button class="btn" data-z="${j}">🔒 ${j+1}</button>`).join('')}</div>
+     <div class="bar"><div class="fill" style="width:0%"></div></div>`;
+  const correct = [...Array(8).keys()];
+  el.querySelectorAll('[data-z]').forEach(b => b.onclick = () => {
+    if (!api.alive) return;
+    if (+b.dataset.z === correct[pos]) { pos++; b.classList.add('go'); b.disabled=true; el.querySelector('.fill').style.width=pos/8*100+'%'; if(pos===8) api.done(); }
+    else api.err('Le curseur a sauté un cran.');
+  });
+};
+
+/* ----- Vaisselle : variantes ----- */
+ITEM_GAMES.vaisselle_stack = (el, api, ctx) => {
+  const order = shuffle(['🍽️','🥣','🍵','🥛','🍷']);
+  let i=0;
+  el.innerHTML=itemHead(ctx.item,'Vaisselle : empile les pièces de la plus grande à la plus fragile.')+
+    `<div class="muted small">Ordre : ${order.join(' → ')}</div><div class="row">${shuffle(order).map((x,j)=>`<button class="btn" data-v="${j}">${x}</button>`).join('')}</div>`;
+  el.querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>{
+    if(!api.alive)return;
+    if(order[i]===order[+b.dataset.v]){b.disabled=true;b.classList.add('go');i++;S('small');if(i===order.length)api.done();}
+    else api.err('Cette pièce n’est pas la prochaine de la pile.');
+  });
+};
+
+ITEM_GAMES.vaisselle_pair = (el, api, ctx) => {
+  const shapes=shuffle(['🍷','🍷','🥛','🥛','🍵','🍵','🍽️','🍽️']);
+  let first=null, lock=false, done=0;
+  el.innerHTML=itemHead(ctx.item,'Vaisselle : retrouve les paires identiques pour vérifier le service.')+
+    `<div class="mem-grid">${shapes.map((x,i)=>`<button class="mem" data-i="${i}">?</button>`).join('')}</div>`;
+  el.querySelectorAll('.mem').forEach(b=>b.onclick=()=>{
+    if(lock||!api.alive||b.classList.contains('up'))return;
+    b.classList.add('up','emo');b.textContent=shapes[+b.dataset.i];S('pop');
+    if(!first){first=b;return;}
+    if(shapes[+first.dataset.i]===shapes[+b.dataset.i]){first.classList.add('ok');b.classList.add('ok');first=null;done++;if(done===4)api.done();}
+    else{lock=true;const a=first;first=null;setTimeout(()=>{[a,b].forEach(x=>{x.classList.remove('up','emo');x.textContent='?'});lock=false},550);}
+  });
+};
+
+/* ----- Livres : variantes ----- */
+ITEM_GAMES.livres_genre = (el, api, ctx) => {
+  const genres=shuffle(['Roman','BD','Essai','Jeunesse','Policier']);
+  let i=0;
+  el.innerHTML=itemHead(ctx.item,'Classe les livres selon le rayon demandé.')+
+    `<div class="muted small">Ordre des rayons : ${genres.join(' → ')}</div><div class="row">${shuffle(genres).map((g,j)=>`<button class="btn" data-g="${j}">📚 ${g}</button>`).join('')}</div>`;
+  el.querySelectorAll('[data-g]').forEach(b=>b.onclick=()=>{
+    if(!api.alive)return;
+    if(genres[i]===genres[+b.dataset.g]){b.disabled=true;i++;S('small');if(i===genres.length)api.done();}else api.err('Mauvais rayon.');
+  });
+};
+
+ITEM_GAMES.livres_condition = (el, api, ctx) => {
+  const defects=shuffle(['Aucun défaut','Page cornée','Couverture déchirée','Annotation','Page manquante']);
+  let i=0;
+  el.innerHTML=itemHead(ctx.item,'Contrôle les livres un par un et décide s’ils vont en rayon ou en rebut.')+
+    `<div class="item"><span class="big emo" id="book">📖</span><div><strong id="def">${defects[0]}</strong></div></div>
+     <div class="row"><button class="btn go" id="ray">🏷️ Rayon</button><button class="btn stop" id="reb">♻️ Rebut</button></div>`;
+  const ok=d=>!['Couverture déchirée','Page manquante'].includes(d);
+  const answer=v=>{if(!api.alive)return;if(v===ok(defects[i])){i++;if(i===defects.length)api.done();else{el.querySelector('#def').textContent=defects[i];S('small')}}else api.err('Mauvais choix : contrôle l’état du livre.')};
+  el.querySelector('#ray').onclick=()=>answer(true);el.querySelector('#reb').onclick=()=>answer(false);
+};
+
+/* ----- Déco : variantes ----- */
+ITEM_GAMES.deco_orient = (el, api, ctx) => {
+  const angles=shuffle([0,90,180,270]), target=angles.slice().sort((a,b)=>a-b);let i=0;
+  el.innerHTML=itemHead(ctx.item,'Déco : remets les objets droits avant de les mettre en rayon.')+
+    `<div class="row">${angles.map((a,j)=>`<button class="btn" data-a="${j}">🖼️ ${a}°</button>`).join('')}</div>
+     <div class="muted small">Angle demandé : <strong id="ang">${target[0]}°</strong></div>`;
+  el.querySelectorAll('[data-a]').forEach(b=>b.onclick=()=>{if(!api.alive)return;if(angles[+b.dataset.a]===target[i]){b.disabled=true;i++;el.querySelector('#ang').textContent=(target[i]??'OK')+(target[i]!=null?'°':'');if(i===target.length)api.done()}else api.err('Pas le bon angle.')});
+};
+
+/* ----- Sport : variantes ----- */
+ITEM_GAMES.sport_ball = (el, api, ctx) => {
+  let power=0, dir=1, hits=0, last=performance.now(), raf=0;
+  el.innerHTML=itemHead(ctx.item,'Ballon : arrête la jauge dans la zone idéale pour vérifier la pression.')+
+    `<div class="gauge"><div class="gzone" style="left:42%;width:16%"></div><div class="gneedle"></div></div><button class="btn vis" id="hit">⚽ Vérifier</button><div class="muted small" id="score">Contrôles : 0 / 3</div>`;
+  const n=el.querySelector('.gneedle');
+  const loop=now=>{power=(Math.sin(now/260)+1)/2*100;n.style.left=power+'%';raf=requestAnimationFrame(loop)};raf=requestAnimationFrame(loop);
+  el.querySelector('#hit').onclick=()=>{if(!api.alive)return;if(power>=42&&power<=58){hits++;S('small');el.querySelector('#score').textContent='Contrôles : '+hits+' / 3';if(hits===3)api.done()}else api.err('Pression hors zone idéale.')};
+  return()=>cancelAnimationFrame(raf);
+};
+
+ITEM_GAMES.sport_racket = (el, api, ctx) => {
+  const seq=shuffle(['T','E','N','N','I','S']);let i=0;
+  el.innerHTML=itemHead(ctx.item,'Raquette : vérifie le cordage en suivant les points de contrôle.')+
+    `<div class="row">${shuffle(seq.map((x,j)=>x+j)).map((x,j)=>`<button class="btn" data-x="${j}">🎾 ${x[0]}</button>`).join('')}</div>
+     <div class="muted small">Séquence : ${seq.join(' → ')}</div>`;
+  el.querySelectorAll('[data-x]').forEach(b=>b.onclick=()=>{if(!api.alive)return;const letter=seq[i];if(b.textContent.includes(letter)){b.disabled=true;i++;if(i===seq.length)api.done()}else api.err('Point de contrôle incorrect.')});
+};
+
+/* ----- Vélo / trottinette : variantes ----- */
+ITEM_GAMES.velo_brake = (el, api, ctx) => {
+  let i=0; const checks=shuffle(['Frein avant','Frein arrière','Guidon','Serrage roue']);
+  el.innerHTML=itemHead(ctx.item,'Vérifie les éléments de sécurité dans l’ordre indiqué par le contrôle qualité.')+
+    `<div class="muted small">Ordre : ${checks.join(' → ')}</div><div class="row">${shuffle(checks).map((x,j)=>`<button class="btn" data-x="${j}">🔧 ${x}</button>`).join('')}</div>`;
+  el.querySelectorAll('[data-x]').forEach(b=>b.onclick=()=>{if(!api.alive)return;if(b.textContent.includes(checks[i])){b.disabled=true;i++;S('screw');if(i===checks.length)api.done()}else api.err('Contrôle hors séquence.')});
+};
+
+/* ----- Sélection automatique : objet -> variante ----- */
+function itemVariantKey(stId, item) {
+  const n = ((item && item.n) || '').toLowerCase();
+  const e = (item && item.e) || '';
+  if (stId === 'test' || stId === 'repair') {
+    if (/télé|tv|téléviseur/.test(n) || e === '📺') return 'deee_tv';
+    if (/imprimante/.test(n) || e === '🖨️') return 'deee_printer';
+    if (/ordinateur|portable/.test(n) || e === '💻') return 'deee_pc';
+    if (/cafetière/.test(n) || e === '☕') return 'deee_coffee';
+    if (/radio/.test(n) || e === '📻') return 'deee_radio';
+  }
+  if (stId === 'jouets') {
+    if (/robot/.test(n) || e === '🤖') return 'jouets_robot';
+    if (/train/.test(n) || e === '🚂') return 'jouets_train';
+    if (/dinosaure/.test(n) || e === '🦖') return 'jouets_dino';
+  }
+  if (stId === 'textile') {
+    if (/manteau|jeans|tee|vêtement|t-shirt/.test(n) || e === '🧥' || e === '👖' || e === '👕') return Math.random() < .5 ? 'textile_fold' : 'textile_zip';
+  }
+  if (stId === 'vaisselle') return Math.random() < .5 ? 'vaisselle_stack' : 'vaisselle_pair';
+  if (stId === 'livres') return Math.random() < .5 ? 'livres_genre' : 'livres_condition';
+  if (stId === 'deco') return Math.random() < .5 ? 'deco_orient' : 'deco';
+  if (stId === 'sport') {
+    if (/ballon/.test(n) || e === '⚽') return 'sport_ball';
+    if (/raquette/.test(n) || e === '🎾') return 'sport_racket';
+  }
+  if (stId === 'velo') return 'velo_brake';
+  return null;
+}
+
 
 /* =================== LIVRAISON : la ville, le camion, les commandes ===================
    Le rideau des apports (mur est) donne sur la rue. Au tableau des livraisons on choisit
