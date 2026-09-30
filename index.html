@@ -1,38 +1,3 @@
-<style>
-
-/* ===== Animations des fenêtres des pôles ===== */
-@keyframes poleWindowIn {
-  0%   { opacity: 0; transform: translateY(14px) scale(.94); filter: blur(2px); }
-  65%  { opacity: 1; transform: translateY(-2px) scale(1.015); filter: blur(0); }
-  100% { opacity: 1; transform: translateY(0) scale(1); }
-}
-@keyframes poleWindowGlow {
-  0%   { opacity: 0; transform: scale(.96); }
-  100% { opacity: 1; transform: scale(1); }
-}
-@keyframes poleContentIn {
-  0%   { opacity: 0; transform: translateY(8px); }
-  100% { opacity: 1; transform: translateY(0); }
-}
-.pole-window-animated {
-  animation: poleWindowIn .24s cubic-bezier(.2,.8,.25,1) both;
-  transform-origin: center center;
-}
-.pole-window-animated .pole-window-content {
-  animation: poleContentIn .28s ease-out .07s both;
-}
-.pole-window-animated .pole-window-header {
-  animation: poleWindowGlow .2s ease-out .02s both;
-}
-@media (prefers-reduced-motion: reduce) {
-  .pole-window-animated,
-  .pole-window-animated .pole-window-content,
-  .pole-window-animated .pole-window-header {
-    animation: none !important;
-  }
-}
-
-</style>
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -399,63 +364,656 @@ label.lbl{display:block;font-weight:700;margin:12px 0 6px;font-size:14px}
 }
 
 /* =================== MODE ZOMBIE =================== */
+#zombieHud{
+  position:absolute;left:12px;top:12px;z-index:6;display:none;
+  background:rgba(12,14,12,.88);color:#fff;border:2px solid rgba(255,255,255,.16);
+  border-radius:14px;padding:10px 14px;box-shadow:0 8px 24px rgba(0,0,0,.3);
+  font-weight:800;pointer-events:none;min-width:190px
+}
+#zombieHud .zh-title{font-size:16px;margin-bottom:4px}
+#zombieHud .zh-line{display:flex;gap:14px;justify-content:space-between;font-size:14px}
+#zombieHud .zh-wave{color:#ffcf5a}
+#zombieHud .zh-life{color:#ff7777}
+#zombieHud .zh-help{margin-top:5px;font-size:12px;font-weight:700;opacity:.78}
+#zombieExit{
+  position:absolute;right:12px;top:12px;z-index:6;display:none;
+  border:0;border-radius:10px;padding:9px 12px;background:rgba(12,14,12,.88);color:#fff;
+  font-weight:800;cursor:pointer
+}
+
+
+/* ===== Animation d'ouverture des fenêtres des pôles ===== */
+@keyframes poleWindowIn {
+  0% { opacity: 0; transform: translateY(12px) scale(.96); }
+  65% { opacity: 1; transform: translateY(-2px) scale(1.01); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes poleContentIn {
+  0% { opacity: 0; transform: translateY(7px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.pole-window-animated {
+  animation: poleWindowIn .24s cubic-bezier(.2,.8,.25,1) both;
+  transform-origin: center center;
+}
+.pole-window-animated .pole-window-content {
+  animation: poleContentIn .28s ease-out .06s both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .pole-window-animated,
+  .pole-window-animated .pole-window-content {
+    animation: none !important;
+  }
+}
+</style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="game"></canvas>
+
+  <div id="vignette"></div>
+
+  <div id="zombieHud">
+    <div class="zh-title">🧟 MODE ZOMBIE</div>
+    <div class="zh-line"><span class="zh-wave">Vague <b id="zWave">1</b></span><span class="zh-life">❤️ <b id="zLives">3</b></span></div>
+    <div class="zh-line"><span>Restants</span><b id="zLeft">0</b></div>
+    <div class="zh-help">F : attaquer · Échap : quitter</div>
+  </div>
+  <button id="zombieExit" type="button">✕ Quitter</button>
+
+  <div id="topUI">
+  <div id="daybar" hidden>
+    <span id="dayLbl">Jour 1</span>
+    <span id="clock">05:00</span>
+    <span class="goal"><span class="gbar"><span id="gfill" style="display:block"></span><i id="gghost"></i></span><span id="gtxt">0 / 0 €</span><span id="gdelta" hidden></span></span>
+    <span id="combo" title="Série d'actions réussies : elle redescend si tu ne fais rien"><b id="comboTxt">x1,00</b><span class="cbar"><i id="comboFill"></i></span></span>
+    <span id="pace" class="pacechip" hidden></span>
+    <span id="streak" class="streakchip" hidden></span>
+    <button class="icon-btn" id="musicBtn" title="Musique" aria-label="Musique">🎵</button>
+    <button class="icon-btn" id="sfxBtn" title="Bruitages" aria-label="Bruitages">🔊</button>
+    <button class="icon-btn" id="dbgBtn" hidden title="Console de test (F2)" aria-label="Console de test">🐞</button>
+  </div>
+
+    <div id="events"></div>
+  <div id="hud" hidden>
+    <button class="hud-top" id="hudToggle" aria-label="Afficher ou masquer les tâches">
+      <span class="grow">À faire · <span id="hudCode"></span></span>
+      <span class="chip" id="errs" title="Erreurs de l'équipe">✖ 0</span>
+    </button>
+    <div class="hud-body">
+      <div class="repline"><span id="repTxt">Réputation</span><span class="rbar"><i id="repFill"></i></span></div>
+      <ul id="objs"></ul>
+      <div id="chWrap" hidden><div class="sep2">Défis du jour</div><ul id="chList"></ul></div>
+      <ul id="plist"></ul>
+    </div>
+  </div>
+  </div>
+  <div id="alert" hidden></div>
+  <div id="toasts"></div>
+  <div id="bottomUI">
+  <button id="actionBtn" hidden></button>
+  <div id="touchBtns" hidden>
+    <button id="throwBtn" hidden title="Lancer le colis (F)" aria-label="Lancer le colis">🎯</button>
+    <button id="runBtn" title="Courir (Maj) : mal vu si un encadrant te voit" aria-label="Courir">🏃</button>
+  </div>
+  </div>
+
+  <div id="dbgPanel" hidden>
+    <header><span>🐞 Console de test</span><button class="close" id="dbgClose" aria-label="Fermer la console">✕</button></header>
+    <div class="dbgbody" id="dbgBody"></div>
+  </div>
+
+  <div id="menu" class="overlay">
+    <div class="card screen">
+      <h1>Paiss Simulator</h1>
+      <p>Fais tourner la ressourcerie, seul ou jusqu'à 4. Réceptionne les dons, trie dans les 8 pôles, étiquette en réserve, vends en magasin. Chaque journée a un objectif de recettes, et l'argent gagné paie les améliorations.</p>
+      <div id="acctBar" class="acctbar"></div>
+      <div class="row">
+        <button class="btn vis" id="createBtn">Créer une partie</button>
+        <button class="btn" id="soloBtn">Jouer seul</button>
+      </div>
+      <div class="sep">ou rejoindre des amis</div>
+      <div class="split">
+        <input class="field" id="codeIn" maxlength="4" placeholder="CODE" autocomplete="off" aria-label="Code de la partie">
+        <button class="btn go" id="joinBtn">Rejoindre</button>
+      </div>
+      <div class="row"><button class="btn" id="lbMenuBtn">🏆 Classement</button></div>
+      <div class="row"><button class="btn" id="zombieBtn">🧟 Mode Zombie</button></div>
+      <div id="lbPreview" class="lbpreview"></div>
+      <p id="status" role="status"></p>
+      <p class="small muted">Commandes : ZQSD ou flèches, E pour agir, Maj pour courir, F pour lancer un colis. Attention aux encadrants en gilet orange.</p>
+      <p class="small muted" id="saveNote" style="margin:0">La progression est sauvegardée sur l'appareil de celui qui crée la partie.</p>
+    </div>
+  </div>
+
+  <div id="room" class="overlay" hidden>
+    <div class="card screen">
+      <p class="muted small" style="margin:0">Code à partager</p>
+      <div class="code" id="roomCode">----</div>
+      <button class="btn" id="copyBtn">Copier le code</button>
+      <ul id="roomPlayers"></ul>
+      <p class="small" id="roomSave"></p>
+      <p class="small" id="roomRank"></p>
+      <p class="small muted">Les frigos, lave-linge, vélos et commodes se portent à deux. À l'établi de réparation, un coéquipier doit lire le schéma au tableau électrique et dicter les branchements.</p>
+      <div class="row">
+        <button class="btn vis" id="startBtn">Ouvrir la ressourcerie</button>
+        <button class="btn" id="resetBtn">Nouvelle sauvegarde</button>
+      </div>
+      <p class="small muted" id="waitMsg" hidden>En attente du lancement par l'hôte…</p>
+    </div>
+  </div>
+
+  <div id="modal" class="overlay" hidden>
+    <div class="card" id="card" role="dialog" aria-modal="true" aria-labelledby="mTitle">
+      <header>
+        <span class="tag" id="mPole"></span>
+        <h2 id="mTitle"></h2>
+        <button class="close" id="mClose" aria-label="Quitter la tâche">✕</button>
+      </header>
+      <div id="mBody"></div>
+      <p class="fb" id="mFb"></p>
+      <div id="mCheat" hidden>
+        <div id="radar" class="radar clear">✅ Aucun encadrant à proximité</div>
+        <button class="btn" id="cheatBtn" title="Termine tout de suite, sans combo. Un encadrant qui te voit = malus.">🤫 Bâcler (mal vu)</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="summary" class="overlay" hidden>
+    <div class="card screen wide">
+      <h1 id="sumTitle">Fin du jour</h1>
+      <div class="stars" id="stars"></div>
+      <p id="sumMsg"></p>
+      <div class="stats">
+        <div><span class="muted small">Recettes</span><b id="sRev">0 €</b></div>
+        <div><span class="muted small">Objectif</span><b id="sGoal">0 €</b></div>
+        <div><span class="muted small">Objets vendus</span><b id="sSold">0</b></div>
+        <div><span class="muted small">Personnes perdues</span><b id="sLost">0</b></div>
+      </div>
+      <div class="bank">Caisse de l'association : <b id="bankTxt">0 €</b></div>
+      <p class="small" id="sumChal" style="margin:6px 0 0"></p>
+      <p class="small" id="sumProg" style="margin:4px 0 0;font-weight:600"></p>
+      <p class="small" id="sumRank" role="status" style="font-weight:600;min-height:1.3em;margin:4px 0 0"></p>
+      <h2 class="h2">Améliorations</h2>
+      <div class="shop" id="shop"></div>
+      <div class="row"><button class="btn vis" id="nextBtn">Jour suivant</button><button class="btn" id="lbSumBtn">🏆 Classement</button><button class="btn" id="retryBtn" hidden>Réessayer l'envoi du score</button></div>
+      <p class="small muted" id="sumWait" hidden>L'hôte lance la journée suivante. Tu peux acheter des améliorations en attendant.</p>
+    </div>
+  </div>
+
+  <div id="authModal" class="overlay" hidden>
+    <div class="card screen" role="dialog" aria-modal="true" aria-labelledby="authTitle">
+      <header><h2 id="authTitle">Connexion</h2><button class="close" id="authClose" aria-label="Fermer">✕</button></header>
+      <div id="authBody"></div>
+    </div>
+  </div>
+
+  <div id="lbModal" class="overlay" hidden>
+    <div class="card screen wide" role="dialog" aria-modal="true" aria-labelledby="lbTitle">
+      <header><h2 id="lbTitle">🏆 Classement</h2><button class="close" id="lbClose" aria-label="Fermer">✕</button></header>
+      <div id="lbPodium" class="lbpreview"></div>
+      <div class="tabs" id="lbTabs">
+        <button type="button" class="tab on" data-s="1">Solo</button><button type="button" class="tab" data-s="2">Duo</button><button type="button" class="tab" data-s="3">Trio</button><button type="button" class="tab" data-s="4">Quatuor</button>
+      </div>
+      <p class="small muted" id="lbNote" style="margin:0"></p>
+      <div class="lb" id="lbList" aria-live="polite"></div>
+      <div class="row"><button class="btn" id="lbRefresh">Actualiser</button></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+'use strict';
+const VERSION = 8;
+const EMO = '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
+const FONT = '"Bricolage Grotesque",system-ui,sans-serif';
+const $ = id => document.getElementById(id);
+const rand = (a, b) => a + Math.random() * (b - a);
+const randi = (a, b) => Math.floor(rand(a, b + 1));
+const pick = a => a[Math.floor(Math.random() * a.length)];
+const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const fmt = s => { s = Math.max(0, Math.ceil(s)); return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0'); };
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+const eur = n => n + ' €';
+
+/* =================== DONNÉES =================== */
+const POLES = {
+  apport: { label: 'Apport', color: '#6b4fa3' },
+  deee: { label: 'DEEE', color: '#3d6a9e' },
+  jouets: { label: 'Jouets', color: '#d9822b' },
+  textile: { label: 'Textile', color: '#b8437a' },
+  vaisselle: { label: 'Vaisselle', color: '#1f8a8a' },
+  livres: { label: 'Livres', color: '#8a5a2b' },
+  deco: { label: 'Déco', color: '#7d5fc4' },
+  sport: { label: 'Sport & meuble', color: '#3f8f3a' },
+  velo: { label: 'Vélo', color: '#c23b3b' },
+  reserve: { label: 'Réserve', color: '#5f6d77' },
+  magasin: { label: 'Magasin', color: '#1f7a55' },
+  livraison: { label: 'Livraison', color: '#e0a823' },
+};
+const CATS = {
+  gros: { label: 'Gros électroménager', min: 50, max: 80 },
+  velo: { label: 'Vélo', min: 40, max: 60 },
+  meuble: { label: 'Meuble', min: 25, max: 45 },
+  deee: { label: 'Petit électro, high-tech', min: 15, max: 30 },
+  sport: { label: 'Sport, trottinette', min: 8, max: 15 },
+  deco: { label: 'Déco', min: 4, max: 8 },
+  jouets: { label: 'Jouet', min: 3, max: 7 },
+  textile: { label: 'Textile', min: 2, max: 5 },
+  vaisselle: { label: 'Vaisselle', min: 1, max: 4 },
+  livres: { label: 'Livre', min: 1, max: 3 },
+};
+const L = (e, n, d, dest, cat, heavy) => ({ e, n, d, dest, cat, heavy: !!heavy, ok: true });
+const LEGAL = [
+  L('📺', 'Téléviseur', 'Écran plat, télécommande fournie', 'deee', 'deee'),
+  L('🖨️', 'Imprimante', 'Cartouches vides', 'deee', 'deee'),
+  L('📻', 'Radio', 'Antenne tordue', 'deee', 'deee'),
+  L('💻', 'Ordinateur portable', 'Chargeur fourni', 'deee', 'deee'),
+  L('☕', 'Cafetière', 'Un peu entartrée', 'deee', 'deee'),
+  L('🧸', 'Peluche', 'Un peu défraîchie', 'jouets', 'jouets'),
+  L('🚂', 'Train en bois', 'Avec quelques rails', 'jouets', 'jouets'),
+  L('🦖', 'Dinosaure', 'Plastique, bon état', 'jouets', 'jouets'),
+  L('🤖', 'Robot jouet', 'Piles à changer', 'jouets', 'jouets'),
+  L('👕', 'Sac de tee-shirts', 'En vrac, à trier', 'textile', 'textile'),
+  L('🧥', 'Manteau', 'Une poche décousue', 'textile', 'textile'),
+  L('👖', 'Lot de jeans', 'Tailles variées', 'textile', 'textile'),
+  L('🍽️', 'Service d\'assiettes', 'Emballé dans du journal', 'vaisselle', 'vaisselle'),
+  L('🍷', 'Verres à pied', 'Carton de six', 'vaisselle', 'vaisselle'),
+  L('🫖', 'Théière', 'Porcelaine', 'vaisselle', 'vaisselle'),
+  L('📚', 'Lot de romans', 'Poches, bon état', 'livres', 'livres'),
+  L('📖', 'Bandes dessinées', 'Série incomplète', 'livres', 'livres'),
+  L('🖼️', 'Cadre', 'Doré, un peu terni', 'deco', 'deco'),
+  L('🏺', 'Vase', 'Céramique', 'deco', 'deco'),
+  L('🕯️', 'Bougeoirs', 'Laiton', 'deco', 'deco'),
+  L('⚽', 'Ballon de foot', 'Dégonflé', 'sport', 'sport'),
+  L('🎾', 'Raquette de tennis', 'Cordage à vérifier', 'sport', 'sport'),
+  L('🛼', 'Rollers', 'Pointure 40', 'sport', 'sport'),
+  L('🛴', 'Trottinette', 'Pneus à plat', 'velo', 'sport'),
+];
+const HEAVY = [
+  L('🧊', 'Réfrigérateur', 'Très lourd : se porte à deux', 'deee', 'gros', 1),
+  L('🧺', 'Lave-linge', 'Très lourd : se porte à deux', 'deee', 'gros', 1),
+  L('🚲', 'Vélo', 'Pneus à plat, se porte à deux', 'velo', 'velo', 1),
+  L('🗄️', 'Commode', 'Bois massif, se porte à deux', 'sport', 'meuble', 1),
+];
+const ILLEGAL = [
+  { e: '🧨', n: 'Pétards', d: 'Feux d\'artifice entamés', why: 'Explosifs : refus systématique.' },
+  { e: '💊', n: 'Boîte de médicaments', d: 'Plaquettes entamées', why: 'Les médicaments se rapportent en pharmacie.' },
+  { e: '🔫', n: 'Pistolet', d: 'Lourd, ça ressemble à une vraie arme', why: 'Arme : refus et on prévient le responsable.' },
+  { e: '🐘', n: 'Défense en ivoire', d: '« Un souvenir de voyage »', why: 'Ivoire : commerce interdit, espèce protégée.' },
+  { e: '👜', n: 'Sac de grande marque', d: 'Logo de travers, coutures bâclées', why: 'Contrefaçon : la revente est illégale.' },
+  { e: '🧪', n: 'Bidon sans étiquette', d: 'Liquide inconnu, odeur forte', why: 'Produit chimique non identifié : refus.' },
+].map(o => ({ ...o, ok: false }));
+const CONTAINERS = [
+  { e: '🎒', n: 'Sac à dos fermé', d: 'Plutôt lourd…', inner: [
+    { e: '🧸', n: 'Doudous et figurines', ok: true, dest: 'jouets', cat: 'jouets' },
+    { e: '🧨', n: 'Pétards cachés au fond', ok: false, why: 'Explosifs : refus systématique.' }] },
+  { e: '📦', n: 'Carton scotché', d: '« C\'est de la vaisselle »', inner: [
+    { e: '🍽️', n: 'Assiettes et verres', ok: true, dest: 'vaisselle', cat: 'vaisselle' },
+    { e: '💊', n: 'Médicaments sous la vaisselle', ok: false, why: 'Les médicaments se rapportent en pharmacie.' }] },
+  { e: '🧳', n: 'Valise', d: 'Fermeture un peu coincée', inner: [
+    { e: '👗', n: 'Vêtements de soirée', ok: true, dest: 'textile', cat: 'textile' },
+    { e: '🔫', n: 'Réplique d\'arme au fond', ok: false, why: 'Armes et répliques : refus, on prévient le responsable.' }] },
+  { e: '🛍️', n: 'Sac de courses', d: 'Plein à craquer', inner: [
+    { e: '🔌', n: 'Rallonges et chargeurs', ok: true, dest: 'deee', cat: 'deee' },
+    { e: '🌿', n: 'Sachets d\'herbe suspecte', ok: false, why: 'Stupéfiants : refus et signalement au responsable.' }] },
+  { e: '🗃️', n: 'Caisse en plastique', d: 'Couvercle fermé', inner: [
+    { e: '📚', n: 'Livres de poche', ok: true, dest: 'livres', cat: 'livres' },
+    { e: '🐘', n: 'Statuette en ivoire', ok: false, why: 'Ivoire : commerce interdit, espèce protégée.' }] },
+];
+function makeWave(nPlayers) {
+  const legal = shuffle(LEGAL).slice(0, 3);
+  if (nPlayers > 1 || Math.random() < 0.3) legal[0] = pick(HEAVY);
+  if (Math.random() < 0.16) legal[1] = pick(RARE);        // trouvaille : récompense variable
+  const cont = pick(CONTAINERS);
+  return shuffle([...legal, pick(ILLEGAL), { ...cont, inner: pick(cont.inner) }]);
+}
+const UPGRADES = [
+  { id: 'shoes', icon: '👟', name: 'Chaussures de sécurité', desc: 'Toute l\'équipe se déplace plus vite.', cost: [40, 90, 160] },
+  { id: 'caddie', icon: '🛒', name: 'Chariot de manutention', desc: 'Encore plus rapide, surtout avec un colis dans les bras.', cost: [60, 130] },
+  { id: 'dons', icon: '🤝', name: 'Campagne de dons', desc: 'Les donneurs viennent plus souvent.', cost: [50, 110] },
+  { id: 'pub', icon: '📣', name: 'Pub dans le quartier', desc: 'Les clients viennent plus souvent.', cost: [50, 110, 190] },
+  { id: 'formation', icon: '🎓', name: 'Formation', desc: 'Mini-jeux plus tolérants et plus rapides.', cost: [60, 140] },
+  { id: 'musique', icon: '🎶', name: 'Musique en boutique', desc: 'Donneurs et clients patientent plus longtemps.', cost: [70] },
+  { id: 'diable', icon: '🏋️', name: 'Diable de manutention', desc: 'Les objets lourds se déplacent seul.', cost: [130] },
+];
+const defaultUpg = () => Object.fromEntries(UPGRADES.map(u => [u.id, 0]));
+const goalFor = (day, n) => Math.round((30 + 25 * (day - 1)) * (1 + 0.65 * (n - 1)));
+
+/* =================== RYTHME, DÉFIS, RÉPUTATION =================== */
+/* La journée n'est plus un long fleuve : quatre temps, annoncés à l'écran */
+const PACING = [
+  { id: 'open', icon: '🌅', name: 'Ouverture', until: 55, donor: 1.30, cust: 1.25, mult: 1 },
+  { id: 'rush', icon: '☀️', name: 'Coup de feu', until: 170, donor: 0.74, cust: 0.76, mult: 1 },
+  { id: 'lull', icon: '🚚', name: 'Collecte', until: 225, donor: 1.70, cust: 1.35, mult: 1.1 },
+  { id: 'last', icon: '🔥', name: 'Dernier rush', until: 1e9, donor: 0.70, cust: 0.72, mult: 2 },
+];
+/* Trois défis tirés au sort chaque jour, pour toute l'équipe */
+const CHALLENGES = [
+  { id: 'sold8', fam: 'sold', label: 'Vendre 8 objets', target: 8, reward: 25, val: g => g.sold },
+  { id: 'sold16', fam: 'sold', label: 'Vendre 16 objets', target: 16, reward: 55, val: g => g.sold },
+  { id: 'combo10', fam: 'combo', label: 'Monter un combo ×1,50', target: 10, reward: 40, val: g => g.bestCombo },
+  { id: 'combo20', fam: 'combo', label: 'Monter un combo ×2,00', target: 20, reward: 70, val: g => g.bestCombo },
+  { id: 'catch1', fam: 'ev', label: 'Rattraper Robert', target: 1, reward: 40, val: g => g.evOk },
+  { id: 'clean', fam: 'tri', label: 'Aucune erreur de tri', target: 1, reward: 50, val: g => (g.errors === 0 ? 1 : 0) },
+  { id: 'noflee', fam: 'monde', label: 'Personne perdue', target: 1, reward: 45, val: g => (g.lost === 0 ? 1 : 0) },
+  { id: 'good', fam: 'don', label: 'Réceptionner 3 dons sans faute', target: 3, reward: 35, val: g => g.donGood },
+  { id: 'bacle', fam: 'risque', label: 'Bâcler 2 fois sans être vu', target: 2, reward: 35, val: g => g.bacleOk },
+];
+function pickChallenges() {
+  const out = [], used = new Set(), pool = shuffle(CHALLENGES);
+  for (const c of pool) { if (used.has(c.fam)) continue; used.add(c.fam); out.push(c); if (out.length === 3) break; }
+  return out;
+}
+/* Trouvailles : quelques pièces qui valent très cher, pour la récompense variable */
+const RARE = [
+  { e: '💿', n: 'Vinyle collector', d: 'Édition numérotée de 1979', dest: 'deco', cat: 'deco', price: 95, rare: 1 },
+  { e: '⌚', n: 'Montre ancienne', d: 'Mécanique, encore à l\'heure', dest: 'deco', cat: 'deco', price: 120, rare: 1 },
+  { e: '📷', n: 'Appareil photo argentique', d: 'Objectif impeccable', dest: 'deee', cat: 'deee', price: 110, rare: 1 },
+  { e: '🪑', n: 'Fauteuil design', d: 'Signé, tissu d\'origine', dest: 'sport', cat: 'meuble', price: 140, rare: 1 },
+  { e: '📻', n: 'Radio à lampes', d: 'Boîtier en acajou', dest: 'deee', cat: 'deee', price: 100, rare: 1 },
+];
+
+/* =================== CARTE =================== */
+const W = 3210, H = 1900, T = 16;
+const rooms = [
+  { x: 832, y: 0, w: 568, h: 198, c: '#d9cfbd' },
+  { x: 832, y: 182, w: 568, h: 716, c: '#d3d8d5' },
+  { x: 0, y: 182, w: 518, h: 716, c: '#cfc8bc', label: 'Atelier vélo', lx: 255, ly: 640 },
+  { x: 502, y: 182, w: 346, h: 716, c: '#e5d8df', label: 'Textile', lx: 670, ly: 520 },
+  { x: 832, y: 882, w: 568, h: 346, c: '#cdc8bd', label: 'Réserve', lx: 1120, ly: 930 },
+  { x: 832, y: 1212, w: 568, h: 688, c: '#ece6d6', label: 'Magasin', lx: 1000, ly: 1760 },
+];
+const walls = [
+  { x: 832, y: 0, w: 568, h: T }, { x: 832, y: 0, w: T, h: 198 },
+  { x: 1384, y: 0, w: 16, h: 52 },
+  { x: 1384, y: 160, w: 16, h: H - 160 },
+  { x: 0, y: 182, w: 848, h: T }, { x: 0, y: 182, w: T, h: 716 }, { x: 0, y: 882, w: 848, h: T },
+  { x: 502, y: 182, w: T, h: 318 }, { x: 502, y: 590, w: T, h: 308 },
+  { x: 832, y: 182, w: T, h: 68 }, { x: 832, y: 340, w: T, h: 558 },
+  { x: 848, y: 182, w: 112, h: T }, { x: 1080, y: 182, w: 304, h: T },
+  { x: 848, y: 882, w: 252, h: T }, { x: 1200, y: 882, w: 184, h: T },
+  { x: 832, y: 882, w: T, h: 1018 },
+  { x: 848, y: 1212, w: 212, h: T }, { x: 1180, y: 1212, w: 204, h: T },
+  { x: 832, y: 1884, w: 568, h: 16 },
+];
+const doors = [[502, 500, T, 90], [832, 250, T, 90], [960, 182, 120, T], [1100, 882, 100, T], [1060, 1212, 120, T]];
+const poleZones = [
+  { k: 'deee', x: 850, y: 420, w: 178, h: 460, lx: 975, ly: 440 },
+  { k: 'sport', x: 1026, y: 370, w: 160, h: 280, lx: 1106, ly: 630 },
+  { k: 'vaisselle', x: 1180, y: 198, w: 204, h: 110, lx: 1230, ly: 290 },
+  { k: 'jouets', x: 1232, y: 345, w: 152, h: 160, lx: 1260, ly: 362 },
+  { k: 'deco', x: 1232, y: 515, w: 152, h: 160, lx: 1260, ly: 532 },
+  { k: 'livres', x: 1232, y: 715, w: 152, h: 160, lx: 1260, ly: 732 },
+];
+const furniture = [
+  { x: 960, y: 66, w: 260, h: 28, type: 'counter', icons: ['📦', '📋', '🛍️'] },
+  { x: 852, y: 450, w: 44, h: 110, type: 'bench', icons: ['🔌', '📻'] },
+  { x: 852, y: 610, w: 44, h: 110, type: 'bench', icons: ['🔧', '📺'] },
+  { x: 848, y: 770, w: 10, h: 70, type: 'panel' },
+  { x: 1070, y: 390, w: 100, h: 170, type: 'table', icons: ['⚽', '🪑', '🎾'] },
+  { x: 1190, y: 200, w: 190, h: 44, type: 'sink', icons: ['🍽️', '🍷'] },
+  { x: 1322, y: 355, w: 58, h: 140, type: 'table', icons: ['🧸', '🧩'] },
+  { x: 1322, y: 525, w: 58, h: 140, type: 'table', icons: ['🏺', '🖼️'] },
+  { x: 1322, y: 725, w: 58, h: 140, type: 'shelf' },
+  { x: 560, y: 300, w: 220, h: 40, type: 'table', icons: ['👕', '👖', '🧥'] },
+  { x: 540, y: 560, w: 28, h: 260, type: 'rack' },
+  { x: 690, y: 740, w: 120, h: 40, type: 'bins' },
+  { x: 40, y: 212, w: 420, h: 28, type: 'bikes' },
+  { x: 180, y: 420, w: 150, h: 50, type: 'bench', icons: ['🔧', '🚲'] },
+  { x: 60, y: 700, w: 120, h: 110, type: 'table', icons: ['⚙️', '🔩'] },
+  { x: 1000, y: 990, w: 240, h: 40, type: 'table', icons: ['🏷️', '📋'] },
+  { x: 856, y: 920, w: 28, h: 260, type: 'shelf' },
+  { x: 1356, y: 920, w: 28, h: 260, type: 'shelf' },
+  { x: 856, y: 1280, w: 28, h: 420, type: 'shelf' },
+  { x: 960, y: 1330, w: 260, h: 30, type: 'gondola' },
+  { x: 960, y: 1460, w: 260, h: 30, type: 'gondola' },
+  { x: 960, y: 1590, w: 260, h: 30, type: 'gondola' },
+  { x: 1240, y: 1720, w: 130, h: 36, type: 'counter', icons: ['💶', '🧾'] },
+  { x: 1128, y: 162, w: 130, h: 16, type: 'board' },
+];
+const solids = walls.concat(furniture);
+const STATIONS = [
+  { id: 'apport', pole: 'apport', name: 'Accueillir un donneur', x: 1090, y: 128 },
+  { id: 'test', pole: 'deee', name: 'Tester un appareil', bac: 'deee', x: 925, y: 505 },
+  { id: 'repair', pole: 'deee', name: 'Réparer un appareil', x: 925, y: 665 },
+  { id: 'schema', pole: 'deee', name: 'Lire le schéma électrique', x: 882, y: 805 },
+  { id: 'sport', pole: 'sport', name: 'Contrôler et resserrer', bac: 'sport', x: 1040, y: 475 },
+  { id: 'vaisselle', pole: 'vaisselle', name: 'Trier la vaisselle', bac: 'vaisselle', x: 1285, y: 275 },
+  { id: 'jouets', pole: 'jouets', name: 'Nettoyer et contrôler', bac: 'jouets', x: 1290, y: 425 },
+  { id: 'deco', pole: 'deco', name: 'Reformer les paires', bac: 'deco', x: 1290, y: 595 },
+  { id: 'livres', pole: 'livres', name: 'Classer les livres', bac: 'livres', x: 1290, y: 795 },
+  { id: 'textile', pole: 'textile', name: 'Trier les vêtements', bac: 'textile', x: 670, y: 385 },
+  { id: 'velo', pole: 'velo', name: 'Regonfler les pneus', bac: 'velo', x: 255, y: 505 },
+  { id: 'etiquette', pole: 'reserve', name: 'Étiqueter les prix', bac: 'reserve', x: 1120, y: 1065 },
+  { id: 'rayon', pole: 'magasin', name: 'Mettre en rayon', bac: 'magasin', x: 1120, y: 1275, nogame: true },
+  { id: 'caisse', pole: 'magasin', name: 'Tenir la caisse', x: 1305, y: 1698 },
+  { id: 'livraison', pole: 'magasin', name: 'Charger le camion', x: 1000, y: 1834 },
+  { id: 'tableau', pole: 'apport', name: 'Tableau des livraisons', x: 1200, y: 132 },
+];
+const APPORT_SLOTS = [[880, 125], [925, 160], [1260, 130], [1310, 160], [1355, 125], [880, 165], [1210, 160], [1350, 170]];
+const RESERVE_SLOTS = [[1000, 1150], [1050, 1175], [1190, 1175], [1240, 1150], [1290, 1175], [960, 1120], [1310, 1120]];
+const DSLOTS = [[1090, 40], [1030, 40], [970, 40]];
+const QSLOTS = [[1305, 1790], [1250, 1810], [1195, 1830], [1140, 1848], [1085, 1860]];
+const EXIT = [1120, 1905];
+const AISLES = [1410, 1540, 1675];
+const ROB_PATH = [[1020, 140], [1020, 240], [1120, 700], [1150, 860], [1150, 930], [1120, 1190], [1120, 1260], [925, 1300], [925, 1800], [1120, 1905]];
+
+/* ----- Encadrants : ronde, vision, actions mal vues ----- */
+const PN = [[900, 130], [1090, 140], [1300, 130], [1020, 190], [1020, 250], [930, 300], [1120, 320], [975, 420], [975, 660], [1120, 700],
+  [1260, 300], [1260, 600], [1260, 810], [1000, 830], [1150, 890], [1150, 945], [960, 945], [960, 1100], [1120, 1100], [1290, 945],
+  [1290, 1100], [1120, 1220], [1120, 1265], [925, 1290], [1290, 1290], [925, 1540], [1290, 1540], [925, 1675], [1100, 1675], [1290, 1675],
+  [925, 1800], [1100, 1800], [1290, 1800], [840, 295], [700, 240], [770, 430], [640, 470], [600, 530], [700, 650], [510, 530],
+  [400, 530], [400, 330], [250, 330], [100, 520], [350, 700], [250, 780], [1100, 1540], [1100, 1410], [925, 1410], [1290, 1410],
+  [810, 320], [539, 270], [539, 430], [1150, 840]];
+const PE = [[0, 1], [1, 2], [0, 3], [1, 3], [3, 4], [4, 5], [4, 6], [5, 7], [6, 7], [6, 10], [7, 8], [8, 9], [8, 13], [9, 14], [13, 53], [53, 14],
+  [10, 11], [11, 12], [12, 14], [11, 9], [5, 33], [14, 15], [15, 16], [16, 17], [17, 18], [15, 19], [19, 20], [20, 18], [18, 21], [21, 22],
+  [22, 23], [22, 24], [23, 48], [48, 25], [48, 47], [47, 49], [49, 24], [49, 26], [25, 46], [46, 26], [25, 27], [27, 30], [27, 28],
+  [28, 29], [30, 31], [31, 32], [28, 31], [33, 34], [33, 50], [50, 35], [34, 51], [51, 52], [52, 36], [35, 36], [36, 37], [36, 38],
+  [37, 39], [35, 38], [39, 40], [40, 41], [41, 42], [40, 43], [40, 44], [44, 45], [43, 45]];
+const ADJ = PN.map(() => []);
+PE.forEach(([a, b]) => { ADJ[a].push(b); ADJ[b].push(a); });
+const VIS_R = 300, VIS_HALF = 0.95, NEAR_R = 80, RUN_MULT = 1.65, THROW_R = 320;
+const BACLE_OK = ['test', 'repair', 'jouets', 'textile', 'vaisselle', 'livres', 'deco', 'sport', 'velo', 'etiquette'];
+function angDiff(a, b) { return Math.atan2(Math.sin(b - a), Math.cos(b - a)); }
+function inWall(x, y) { for (const w of walls) if (x >= w.x && x <= w.x + w.w && y >= w.y && y <= w.y + w.h) return true; return false; }
+function lineOfSight(x1, y1, x2, y2) {
+  const d = Math.hypot(x2 - x1, y2 - y1), n = Math.max(1, Math.ceil(d / 8));
+  for (let i = 1; i < n; i++) { const t = i / n; if (inWall(x1 + (x2 - x1) * t, y1 + (y2 - y1) * t)) return false; }
+  return true;
+}
+function canSee(e, x, y) {
+  const dx = x - e.x, dy = y - e.y, d = Math.hypot(dx, dy);
+  if (d > VIS_R) return false;
+  if (d > NEAR_R && Math.abs(angDiff(e.dir, Math.atan2(dy, dx))) > VIS_HALF) return false;
+  return lineOfSight(e.x, e.y, x, y);
+}
+function rayLen(x, y, a, max) {
+  const cx = Math.cos(a), cy = Math.sin(a);
+  for (let d = 10; d < max; d += 8) if (inWall(x + cx * d, y + cy * d)) return d;
+  return max;
+}
+const EVENTS = {
+  yanis: { name: 'Yanis s\'est endormi', who: 'Yanis', icon: '😴', time: 40, malus: 15, blocks: ['test', 'repair'],
+    hint: 'Va vite le réveiller au pôle DEEE : les postes DEEE sont bloqués.' },
+  oceane: { name: 'Océane lance un débat', who: 'Océane', icon: '📢', time: 45, malus: 15, blocks: ['jouets'],
+    hint: 'Va la calmer au pôle Jouets : le pôle est bloqué.' },
+  quentin: { name: 'Quentin déclenche la RQ', who: 'Quentin', icon: '⚡', time: 35, fatal: true, blocks: ['test', 'repair'],
+    hint: 'Massage du bras en urgence au pôle DEEE, sinon la partie est perdue !' },
+  robert: { name: 'Robert vole un apport', who: 'Robert', icon: '🦹', blocks: ['apport'],
+    hint: 'Rattrape-le avant qu\'il sorte par la porte du magasin !' },
+};
+const COWORKERS = { yanis: { x: 990, y: 560, color: '#3d6a9e' }, quentin: { x: 990, y: 730, color: '#2f6fb5' },
+  oceane: { x: 1250, y: 480, color: '#d9822b' }, robert: { x: 1330, y: 70, color: '#6b4fa3' } };
+const EVENT_ST = {
+  ev_yanis: { id: 'ev_yanis', pole: 'deee', name: 'Réveiller Yanis' },
+  ev_oceane: { id: 'ev_oceane', pole: 'jouets', name: 'Calmer Océane' },
+  ev_quentin: { id: 'ev_quentin', pole: 'deee', name: 'Masser le bras de Quentin' },
+};
+const FACES = ['🙂', '😀', '🧐', '😊', '🤓', '😎', '🙃'];
+const NPC_COLORS = ['#6b4fa3', '#2f6fb5', '#8a5a2b', '#1f8a8a', '#b8437a', '#556b2f'];
+const COLORS = ['#2f8fd8', '#35b06b', '#d94fa0', '#8a63d2', '#ff7a00', '#e0a800', '#c8372d'];
+
+/* =================== SON =================== */
+const SND = (() => {
+  let ac = null, master, musicG, sfxG, noiseBuf, timer = 0, nextT = 0, step = 0, fast = false;
+  let musicOn = true, sfxOn = true;
+  try { musicOn = localStorage.getItem('paiss-music') !== '0'; sfxOn = localStorage.getItem('paiss-sfx') !== '0'; } catch (e) {}
+  const mtof = m => 440 * Math.pow(2, (m - 69) / 12);
+  function init() {
+    if (ac) { if (ac.state === 'suspended') ac.resume(); return; }
+    const C = window.AudioContext || window.webkitAudioContext; if (!C) return;
+    ac = new C();
+    master = ac.createGain(); master.gain.value = 0.9; master.connect(ac.destination);
+    musicG = ac.createGain(); musicG.gain.value = musicOn ? 0.16 : 0; musicG.connect(master);
+    sfxG = ac.createGain(); sfxG.gain.value = sfxOn ? 0.55 : 0; sfxG.connect(master);
+    noiseBuf = ac.createBuffer(1, ac.sampleRate, ac.sampleRate);
+    const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    nextT = ac.currentTime + 0.1;
+    timer = setInterval(schedule, 25);
+  }
+  function tone(freq, dur, o = {}) {
+    if (!ac) return;
+    const t = o.at != null ? o.at : ac.currentTime + (o.delay || 0);
+    const osc = ac.createOscillator(), g = ac.createGain();
+    osc.type = o.type || 'square';
+    osc.frequency.setValueAtTime(freq, t);
+    if (o.slide) osc.frequency.exponentialRampToValueAtTime(Math.max(30, freq * o.slide), t + dur);
+    const v = o.vol || 0.3;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(v, t + (o.attack || 0.006));
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    osc.connect(g); g.connect(o.dest || sfxG);
+    osc.start(t); osc.stop(t + dur + 0.03);
+  }
+  function noise(dur, vol, o = {}) {
+    if (!ac) return;
+    const t = o.at != null ? o.at : ac.currentTime + (o.delay || 0);
+    const src = ac.createBufferSource(); src.buffer = noiseBuf;
+    const f = ac.createBiquadFilter(); f.type = o.ftype || 'highpass'; f.frequency.value = o.freq || 6000;
+    const g = ac.createGain();
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    src.connect(f); f.connect(g); g.connect(o.dest || sfxG);
+    src.start(t, Math.random() * 0.5); src.stop(t + dur + 0.02);
+  }
+  const sounds = {
+    click() { tone(900, 0.05, { vol: 0.12 }); },
+    pick() { tone(420, 0.12, { type: 'triangle', slide: 1.7, vol: 0.35 }); },
+    drop() { tone(520, 0.12, { type: 'triangle', slide: 0.6, vol: 0.35 }); },
+    ok() { [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.16, { type: 'triangle', vol: 0.3, delay: i * 0.07 })); },
+    small() { tone(740, 0.08, { type: 'triangle', vol: 0.25 }); tone(988, 0.1, { type: 'triangle', vol: 0.2, delay: 0.06 }); },
+    err() { tone(180, 0.28, { type: 'sawtooth', vol: 0.2, slide: 0.6 }); tone(186, 0.28, { type: 'square', vol: 0.1, slide: 0.6 }); },
+    coin() { tone(988, 0.08, { vol: 0.16 }); tone(1319, 0.28, { vol: 0.16, delay: 0.07 }); },
+    bell() { tone(1320, 0.7, { type: 'sine', vol: 0.22 }); tone(1760, 0.55, { type: 'sine', vol: 0.12, delay: 0.03 }); },
+    tick() { tone(1250, 0.04, { vol: 0.12 }); },
+    pop() { tone(260, 0.08, { type: 'sine', vol: 0.3, slide: 2.6 }); },
+    pump() { noise(0.09, 0.25, { ftype: 'bandpass', freq: 1800 }); },
+    boom() { noise(0.45, 0.6, { ftype: 'lowpass', freq: 900 }); tone(120, 0.3, { type: 'sine', vol: 0.4, slide: 0.4 }); },
+    screw() { tone(1400, 0.05, { vol: 0.12 }); tone(1800, 0.05, { vol: 0.1, delay: 0.04 }); },
+    start() { [392, 523, 659, 784, 1047].forEach((f, i) => tone(f, 0.2, { type: 'square', vol: 0.15, delay: i * 0.09 })); },
+    win() { [784, 659, 784, 1047, 1319].forEach((f, i) => tone(f, 0.22, { type: 'square', vol: 0.16, delay: i * 0.12 })); },
+    fail() { [392, 370, 349, 294].forEach((f, i) => tone(f, 0.32, { type: 'triangle', vol: 0.25, delay: i * 0.18 })); },
+    siren() { [0, 1, 2, 3, 4, 5].forEach(i => tone(i % 2 ? 660 : 880, 0.2, { type: 'square', vol: 0.16, delay: i * 0.2 })); },
+    whoosh() { noise(0.25, 0.35, { ftype: 'bandpass', freq: 1200 }); tone(300, 0.22, { type: 'sine', vol: 0.15, slide: 2.2 }); },
+    caught() { tone(1800, 0.14, { type: 'sine', vol: 0.3 }); tone(1500, 0.32, { type: 'sine', vol: 0.3, delay: 0.16, slide: 0.8 }); [392, 330, 262].forEach((f, i) => tone(f, 0.3, { type: 'triangle', vol: 0.25, delay: 0.5 + i * 0.2 })); },
+    softalarm() { tone(880, 0.09, { type: 'square', vol: 0.1 }); tone(880, 0.09, { type: 'square', vol: 0.1, delay: 0.16 }); },
+    buy() { [659, 880, 1175].forEach((f, i) => tone(f, 0.12, { type: 'square', vol: 0.14, delay: i * 0.06 })); },
+  };
+  function play(name, arg) { if (!ac || !sfxOn) return; if (name === 'combo') { tone(560 + Math.min(arg, 20) * 45, 0.1, { type: 'square', vol: 0.12 }); tone(840 + Math.min(arg, 20) * 45, 0.12, { type: 'square', vol: 0.1, delay: 0.06 }); return; } const s = sounds[name]; if (s) s(); }
+
+  // Musique : boucle de 4 mesures, C - Am - F - G
+  const MEL = [72, 0, 76, 0, 79, 0, 76, 0, 74, 0, 72, 0, 74, 76, 0, 0,
+    72, 0, 69, 0, 72, 0, 76, 0, 74, 0, 72, 0, 69, 0, 0, 0,
+    69, 0, 72, 0, 77, 0, 76, 0, 74, 0, 72, 0, 74, 0, 76, 0,
+    79, 0, 77, 0, 76, 0, 74, 0, 71, 0, 74, 0, 79, 0, 0, 0];
+  const ROOTS = [48, 45, 41, 43];
+  const CHORD = [[60, 64, 67], [57, 60, 64], [53, 57, 60], [55, 59, 62]];
+  function playStep(s, t) {
+    const bar = Math.floor(s / 16), b = s % 16, root = ROOTS[bar], sp = 60 / (fast ? 138 : 116) / 4;
+    const M = { dest: musicG, at: t };
+    if (b === 0 || b === 3 || b === 8 || b === 11) tone(mtof(root), sp * 1.8, { ...M, type: 'triangle', vol: 0.5 });
+    if (b === 6 || b === 14) tone(mtof(root + 12), sp * 1.5, { ...M, type: 'triangle', vol: 0.4 });
+    if (b === 0 || b === 8) tone(110, 0.12, { ...M, type: 'sine', vol: 0.6, slide: 0.35 });
+    if (b === 4 || b === 12) noise(0.12, 0.25, { dest: musicG, at: t, ftype: 'bandpass', freq: 2200 });
+    if (b % 2 === 0) noise(0.03, b % 4 === 2 ? 0.16 : 0.08, { dest: musicG, at: t });
+    if (b === 2 || b === 10) CHORD[bar].forEach(m => tone(mtof(m), sp * 1.2, { ...M, type: 'square', vol: 0.05 }));
+    const m = MEL[s]; if (m) tone(mtof(m), sp * 1.7, { ...M, type: 'square', vol: 0.12 });
+  }
+  function schedule() {
+    if (!ac) return;
+    while (nextT < ac.currentTime + 0.12) {
+      playStep(step, nextT);
+      nextT += 60 / (fast ? 138 : 116) / 4;
+      step = (step + 1) % 64;
+    }
+  }
+  function setMusic(on) { musicOn = on; try { localStorage.setItem('paiss-music', on ? '1' : '0'); } catch (e) {} if (musicG) musicG.gain.value = on ? 0.16 : 0; }
+  function setSfx(on) { sfxOn = on; try { localStorage.setItem('paiss-sfx', on ? '1' : '0'); } catch (e) {} if (sfxG) sfxG.gain.value = on ? 0.55 : 0; }
+  return { init, play, setMusic, setSfx, setFast(f) { fast = f; }, get musicOn() { return musicOn; }, get sfxOn() { return sfxOn; } };
+})();
+const S = (n, a) => SND.play(n, a);
+addEventListener('pointerdown', () => SND.init(), { capture: true });
+
+/* =================== MODE ZOMBIE =================== */
 let zombieMode = false;
 let zombieState = null;
 let zombieLastAttack = 0;
 
 function startZombieMode() {
   if (G || view) {
+    // Le mode zombie est lancé depuis l'accueil ; on évite de superposer deux parties.
     setStatus('Quitte d’abord la partie en cours.');
     return;
   }
-
-  // On démarre LE MÊME jeu que le mode normal, puis on ajoute la menace zombie.
   zombieMode = true;
   zombieState = {
-    wave: 0,
+    wave: 1,
     lives: 3,
     zombies: [],
-    spawnLeft: 0,
-    spawnTimer: 0,
+    spawnLeft: 3,
+    spawnTimer: 0.2,
     betweenWave: 0,
     score: 0,
-    hitFlash: 0,
-    nextWaveDelay: 3
+    gameOver: false,
+    hitFlash: 0
   };
-
-  startSolo();
-  showToast('🧟 Mode Zombie : la journée commence normalement… mais les zombies arrivent.', true);
+  Object.assign(me, {
+    x: 1110, y: 650, dir: -Math.PI / 2, moving: false, running: false,
+    driving: false, veh: null, walk: 0
+  });
+  $('menu').hidden = true;
+  $('zombieHud').style.display = 'block';
+  $('zombieExit').style.display = 'block';
+  $('daybar').hidden = true;
+  $('hud').hidden = true;
+  $('actionBtn').hidden = false;
+  $('actionBtn').textContent = 'F  ATTAQUER';
+  showToast('🧟 Les zombies arrivent ! Survis aux vagues.', true);
+  updateZombieHud();
 }
 
 function exitZombieMode() {
-  // Le bouton/Échap ne quitte pas une journée en cours : on laisse le jeu normal
-  // gérer son cycle. À utiliser depuis le menu uniquement.
   zombieMode = false;
   zombieState = null;
-  const zh = $('zombieHud'); if (zh) zh.style.display = 'none';
-  const ze = $('zombieExit'); if (ze) ze.style.display = 'none';
-}
-
-function zombieSpawnPoint() {
-  // Entrées réelles de la ressourcerie : les zombies commencent à l'extérieur
-  // puis doivent franchir une ouverture, au lieu de traverser les murs.
-  const candidates = [
-    { x: 1410, y: 106 },
-    { x: 1410, y: 145 },
-    { x: 1400, y: 180 }
-  ];
-  return candidates[Math.floor(Math.random() * candidates.length)];
+  $('zombieHud').style.display = 'none';
+  $('zombieExit').style.display = 'none';
+  $('actionBtn').hidden = true;
+  $('menu').hidden = false;
+  setStatus('');
 }
 
 function zombieSpawn() {
-  if (!zombieState) return;
-  const p = zombieSpawnPoint();
+  // Les zombies arrivent par le rideau d'entrée, puis pénètrent dans la ressourcerie.
+  const laneY = 78 + Math.random() * 62;
   zombieState.zombies.push({
     id: Math.random().toString(36).slice(2),
-    x: p.x,
-    y: p.y,
+    x: 1360 + Math.random() * 18,
+    y: laneY,
     hp: 1,
-    speed: Math.min(92, 42 + zombieState.wave * 3 + Math.random() * 14),
+    speed: 42 + zombieState.wave * 3 + Math.random() * 18,
     attackCd: 0,
     wobble: Math.random() * Math.PI * 2,
     hit: 0,
@@ -464,53 +1022,9 @@ function zombieSpawn() {
   zombieState.spawnLeft--;
 }
 
-function zombieStartWave() {
-  const zt = zombieState;
-  if (!zt || !zombieMode || !G || G.phase !== 'play') return;
-  zt.wave++;
-  zt.spawnLeft = Math.min(3 + zt.wave * 2, 24);
-  zt.spawnTimer = .8;
-  zt.betweenWave = 0;
-  toastAll('🧟 Vague ' + zt.wave + ' ! ' + zt.spawnLeft + ' zombies arrivent.');
-}
-
-function zombieTarget() {
+function zombieTarget(z) {
+  // Ils suivent le joueur avec une légère imprécision pour donner un mouvement naturel.
   return { x: me.x, y: me.y };
-}
-
-function zombieCanMove(x, y, r = 15) {
-  if (x < 26 || y < 26 || x > W - 26 || y > H - 26) return false;
-
-  // Exactement les mêmes solides que les joueurs à pied.
-  if (typeof solids !== 'undefined') {
-    for (const b of solids) if (hitRect(x, y, r, b)) return false;
-  }
-
-  if (typeof cityHit === 'function' && cityHit(x, y, r)) return false;
-
-  // Le rideau reste un obstacle lorsqu'il est fermé.
-  if (typeof GATE !== 'undefined' && (!view || !view.gate) && hitRect(x, y, r, GATE)) return false;
-
-  // Le camion est aussi un obstacle.
-  if (view && view.veh && hitRect(x, y, r, {
-    x: view.veh.x - 22, y: view.veh.y - 30, w: 44, h: 60
-  })) return false;
-
-  return true;
-}
-
-function zombieTryMove(z, nx, ny) {
-  if (zombieCanMove(nx, ny, z.r || 15)) {
-    z.x = nx; z.y = ny; return true;
-  }
-  // Glissement contre les murs.
-  if (zombieCanMove(nx, z.y, z.r || 15)) {
-    z.x = nx; return true;
-  }
-  if (zombieCanMove(z.x, ny, z.r || 15)) {
-    z.y = ny; return true;
-  }
-  return false;
 }
 
 function zombieAttack() {
@@ -523,35 +1037,57 @@ function zombieAttack() {
   for (const z of zombieState.zombies) {
     if (!z.alive) continue;
     const d = Math.hypot(z.x - me.x, z.y - me.y);
-    if (d <= 78 && d < bestD) { best = z; bestD = d; }
+    if (d <= 92 && d < bestD) { best = z; bestD = d; }
   }
 
-  if (!best) { S('drop'); return; }
-
-  best.hp = 0;
-  best.alive = false;
-  best.hit = 1;
-  zombieState.score++;
-  fxAll(best.x, best.y, '+1', 'ok');
-  S('ok');
+  if (best) {
+    best.hp = 0;
+    best.alive = false;
+    best.hit = 1;
+    zombieState.score++;
+    fxAll(best.x, best.y, '+1', 'ok');
+    S('ok');
+  } else {
+    S('drop');
+  }
 }
 
 function updateZombie(dt) {
   const zt = zombieState;
-  if (!zombieMode || !zt || !G || G.phase !== 'play') return;
+  if (!zombieMode || !zt) return;
 
-  // Première vague après le début de la journée.
-  if (zt.wave === 0) {
-    zt.nextWaveDelay -= dt;
-    if (zt.nextWaveDelay <= 0) zombieStartWave();
+  if (zt.gameOver) return;
+
+  // Déplacement du joueur.
+  let mx = 0, my = 0;
+  if (keys.has('arrowleft') || keys.has('q') || keys.has('a')) mx -= 1;
+  if (keys.has('arrowright') || keys.has('d')) mx += 1;
+  if (keys.has('arrowup') || keys.has('z') || keys.has('w')) my -= 1;
+  if (keys.has('arrowdown') || keys.has('s')) my += 1;
+  if (joy.active) { mx += joy.dx; my += joy.dy; }
+  const len = Math.hypot(mx, my);
+  if (len > 1) { mx /= len; my /= len; }
+  const moving = Math.abs(mx) + Math.abs(my) > 0.01;
+  if (moving) {
+    const sp = 225;
+    const nx = me.x + mx * sp * dt;
+    const ny = me.y + my * sp * dt;
+    // Le joueur reste dans la ressourcerie.
+    if (!playerBlocked(nx, me.y)) me.x = nx;
+    if (!playerBlocked(me.x, ny)) me.y = ny;
+    me.dir = Math.atan2(my, mx);
+    me.moving = true;
+    me.walk += sp * dt * 0.025;
+  } else {
+    me.moving = false;
   }
 
-  // Spawn progressif : jamais toute la vague d'un coup.
+  // Apparition progressive de la vague.
   if (zt.spawnLeft > 0) {
     zt.spawnTimer -= dt;
     if (zt.spawnTimer <= 0) {
       zombieSpawn();
-      zt.spawnTimer = Math.max(.55, 1.35 - zt.wave * .025);
+      zt.spawnTimer = Math.max(0.45, 1.25 - zt.wave * 0.035);
     }
   }
 
@@ -563,37 +1099,40 @@ function updateZombie(dt) {
     z.attackCd = Math.max(0, z.attackCd - dt);
     z.wobble += dt * 5;
 
-    const target = zombieTarget();
+    const target = zombieTarget(z);
     let dx = target.x - z.x, dy = target.y - z.y;
     const d = Math.hypot(dx, dy) || 1;
     dx /= d; dy /= d;
 
-    // Les zombies sont physiquement bloqués par les murs/bâtiments.
-    zombieTryMove(z, z.x + dx * z.speed * dt, z.y + dy * z.speed * dt);
+    // Mouvement vers le joueur.
+    z.x += dx * z.speed * dt;
+    z.y += dy * z.speed * dt;
 
-    // Contact = dégâts, mais la partie continue tant qu'il reste des vies.
-    const actualD = Math.hypot(me.x - z.x, me.y - z.y);
-    if (actualD < 34 && z.attackCd <= 0) {
-      z.attackCd = 1.15;
+    // Contact = perte d'une vie, puis le zombie recule.
+    if (d < 34 && z.attackCd <= 0) {
+      z.attackCd = 1.1;
       zt.lives--;
-      zt.hitFlash = .28;
+      z.x -= dx * 55;
+      z.y -= dy * 55;
+      zt.hitFlash = .25;
       S('bad');
-
-      // Petit recul du zombie pour éviter les dégâts permanents.
-      zombieTryMove(z, z.x - dx * 45, z.y - dy * 45);
-
       if (zt.lives <= 0) {
-        // Vraie défaite de la journée normale : résumé, score, progression, etc.
-        endDay('La ressourcerie a été envahie par les zombies.');
-        return;
+        zt.gameOver = true;
+        showToast('💀 La ressourcerie est envahie ! Score : ' + zt.score, false);
       }
     }
   }
 
-  // Quand toute la vague est éliminée, pause puis vague suivante.
+  // Nouvelle vague quand tous les zombies sont morts et que ceux de la vague sont entrés.
   if (zt.spawnLeft === 0 && alive === 0) {
     zt.betweenWave += dt;
-    if (zt.betweenWave >= 3) zombieStartWave();
+    if (zt.betweenWave >= 1.5) {
+      zt.wave++;
+      zt.spawnLeft = Math.min(3 + zt.wave * 2, 24);
+      zt.spawnTimer = .2;
+      zt.betweenWave = 0;
+      toastAll('🧟 Vague ' + zt.wave + ' ! ' + zt.spawnLeft + ' zombies arrivent.');
+    }
   }
 
   zt.hitFlash = Math.max(0, zt.hitFlash - dt);
@@ -602,19 +1141,15 @@ function updateZombie(dt) {
 
 function updateZombieHud() {
   if (!zombieState) return;
-  const zh = $('zombieHud');
-  if (!zh) return;
-
-  const left = zombieState.zombies.filter(z => z.alive).length + zombieState.spawnLeft;
-  zh.style.display = 'block';
-  $('zWave').textContent = zombieState.wave || 1;
+  $('zWave').textContent = zombieState.wave;
   $('zLives').textContent = zombieState.lives;
-  $('zLeft').textContent = left;
+  $('zLeft').textContent = zombieState.zombies.filter(z => z.alive).length + zombieState.spawnLeft;
+  if (zombieState.gameOver) $('actionBtn').textContent = 'Échap  QUITTER';
 }
 
 function drawZombieMode(now) {
   const zt = zombieState;
-  if (!zt || !zombieMode) return;
+  if (!zt) return;
 
   for (const z of zt.zombies) {
     if (!z.alive && z.hit <= 0) continue;
@@ -624,17 +1159,35 @@ function drawZombieMode(now) {
     emoji('🧟', z.x, z.y + bob, 34);
     if (z.alive) {
       ctx.fillStyle = 'rgba(0,0,0,.35)';
-      ctx.beginPath();
-      ctx.ellipse(z.x, z.y + 19, 15, 5, 0, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.beginPath(); ctx.ellipse(z.x, z.y + 19, 15, 5, 0, 0, Math.PI * 2); ctx.fill();
     }
     ctx.restore();
   }
 
+  drawPlayer(me.x, me.y, me.dir, me.moving ? me.walk : 0, myColor(), null);
+
+  // Indicate la portée du coup lorsque le joueur est dans le mode zombie.
+  ctx.save();
+  ctx.globalAlpha = .12;
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(me.x, me.y, 92, 0, Math.PI * 2); ctx.stroke();
+  ctx.restore();
+
   if (zt.hitFlash > 0) {
     ctx.save();
-    ctx.fillStyle = 'rgba(220,30,30,' + Math.min(.32, zt.hitFlash) + ')';
+    ctx.fillStyle = 'rgba(220,30,30,' + Math.min(.35, zt.hitFlash) + ')';
     ctx.fillRect(camX, camY, vw, vh);
+    ctx.restore();
+  }
+
+  if (zt.gameOver) {
+    ctx.save();
+    ctx.fillStyle = 'rgba(0,0,0,.62)';
+    ctx.fillRect(camX, camY, vw, vh);
+    text('RESSOURCERIE ENVAHIE', me.x, me.y - 80, 34, '#fff', 900);
+    text('Score : ' + zt.score + ' · Vague : ' + zt.wave, me.x, me.y - 35, 20, '#fff', 800);
+    text('Échap pour revenir à l’accueil', me.x, me.y + 10, 16, '#fff', 700);
     ctx.restore();
   }
 }
@@ -2679,17 +3232,14 @@ addEventListener('keydown', e => {
     return;
   }
   const k = e.key.toLowerCase();
+  if (zombieMode) {
+    if (k === 'escape') { e.preventDefault(); exitZombieMode(); return; }
+    if (k === 'f' && !e.repeat) { e.preventDefault(); zombieAttack(); return; }
+    if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(k)) e.preventDefault();
+    keys.add(k);
+    return;
+  }
   const playing = view && view.phase === 'play';
-  if (zombieMode && playing && k === 'f' && !e.repeat) {
-    e.preventDefault();
-    zombieAttack();
-    return;
-  }
-  if (zombieMode && k === 'escape' && !e.repeat) {
-    e.preventDefault();
-    showToast('La partie continue : Échap ne quitte pas la journée en mode Zombie.');
-    return;
-  }
   if (playing && ['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(k)) e.preventDefault();
   keys.add(k);
   if (playing && !e.repeat && (k === 'e' || k === ' ' || k === 'enter')) doAction();
@@ -2723,7 +3273,7 @@ $('createBtn').addEventListener('click', () => createGame());
 $('soloBtn').addEventListener('click', startSolo);
 $('zombieBtn').addEventListener('click', startZombieMode);
 $('zombieExit').addEventListener('click', exitZombieMode);
-$('actionBtn').addEventListener('click', () => { if (zombieMode) zombieAttack(); else doAction(); });
+$('actionBtn').addEventListener('click', () => { if (zombieMode) { if (zombieState && zombieState.gameOver) exitZombieMode(); else zombieAttack(); } else doAction(); });
 $('joinBtn').addEventListener('click', joinGame);
 $('startBtn').addEventListener('click', () => send({ t: 'start' }));
 $('nextBtn').addEventListener('click', () => send({ t: 'start' }));
@@ -3107,8 +3657,8 @@ function frame(now) {
   insTop += (insTopT - insTop) * fk; insBot += (insBotT - insBot) * fk;
   const playing = zombieMode || (view && view.phase === 'play');
   if (playing && !modalOpen) {
-    update(dt);
     if (zombieMode) updateZombie(dt);
+    else update(dt);
   }
   if (net.isHost && G) hostFrame(now, dt);
   if (view) {
@@ -3125,13 +3675,13 @@ function frame(now) {
     }
   }
   if (playing) {
-    if (!net.isHost && now - lastPosSent > 66) {
+    if (!zombieMode && !net.isHost && now - lastPosSent > 66) {
       lastPosSent = now;
       const m = { t: 'pos', x: Math.round(me.x), y: Math.round(me.y), dir: Math.round(me.dir * 100) / 100, moving: me.moving, run: !!(me.running && me.moving) };
       if (me.driving && me.veh) m.veh = { x: me.veh.x, y: me.veh.y, a: Math.round(me.veh.a * 100) / 100, v: Math.round(me.veh.v), dmg: Math.round(me.veh.dmg) };
       send(m);
     }
-    computeAction(); syncThrowBtn();
+    if (!zombieMode) { computeAction(); syncThrowBtn(); }
   } else act = null;
   if (zombieMode) updateZombieHud();
   else renderAction();
@@ -3583,6 +4133,15 @@ function openStation(stId, ctxData) {
   $('mFb').textContent = ''; $('mFb').className = 'fb';
   $('mBody').innerHTML = '';
   $('modal').hidden = false;
+  card.classList.remove('pole-window-animated');
+  void card.offsetWidth;
+  card.classList.add('pole-window-animated');
+  const poleContent = $('mBody');
+  if (poleContent) {
+    poleContent.classList.remove('pole-window-content');
+    void poleContent.offsetWidth;
+    poleContent.classList.add('pole-window-content');
+  }
   lastActKey = '';
   $('mCheat').hidden = !BACLE_OK.includes(stId);
   $('cheatBtn').onclick = () => startBacle(stId, sess);
@@ -3620,6 +4179,8 @@ function closeModal(silent) {
   if (cleanup) cleanup();
   cleanup = null; modalKey = null; modalKeyUp = null; modalUpdate = null;
   $('modal').hidden = true; modalOpen = false; lastActKey = ''; $('mCheat').hidden = true;
+  $('card').classList.remove('pole-window-animated');
+  $('mBody').classList.remove('pole-window-content');
 }
 const itemHead = (it, hint) => `<div class="device"><span class="big emo">${esc(it ? it.e : '📦')}</span>
   <div><strong>${esc(it ? it.n : '')}</strong><div class="muted small">${hint}</div></div></div>`;
@@ -4798,7 +5359,7 @@ requestAnimationFrame(frame);
 })();
 </script>
 
-<div id="game-version" aria-label="Version du jeu">(1.3.1)</div>
+<div id="game-version" aria-label="Version du jeu">(1.3.2)</div>
 <style>
 #game-version {
   position: fixed;
@@ -4811,69 +5372,6 @@ requestAnimationFrame(frame);
   text-shadow: 0 1px 3px rgba(0,0,0,.8);
 }
 </style>
-
-
-<script>
-(function installPoleWindowAnimations(){
-  function animateWindow(el) {
-    if (!(el instanceof HTMLElement)) return;
-    const text = (el.textContent || '').toLowerCase();
-    const cls = (el.className || '').toString().toLowerCase();
-    const likelyPole =
-      /pole|atelier|textile|meuble|deee|electronique|electro|livre|culture|sport|jouet|vaisselle|deco|informatique/.test(text + ' ' + cls);
-    const likelyWindow =
-      /modal|dialog|popup|window|panel|overlay/.test(cls) ||
-      el.getAttribute('role') === 'dialog';
-    if (!likelyPole && !likelyWindow) return;
-
-    el.classList.remove('pole-window-animated');
-    void el.offsetWidth;
-    el.classList.add('pole-window-animated');
-
-    // Anime aussi le contenu principal si identifiable.
-    const content = el.querySelector('.modal-content,.window-content,.panel-content,.content,.modal-body,.pole-content');
-    if (content) {
-      content.classList.add('pole-window-content');
-      void content.offsetWidth;
-      content.style.animation = 'none';
-      void content.offsetWidth;
-      content.style.animation = '';
-    }
-
-    const header = el.querySelector('.modal-header,.window-header,.panel-header,.header,.pole-header');
-    if (header) header.classList.add('pole-window-header');
-  }
-
-  const observer = new MutationObserver(function(mutations){
-    for (const mutation of mutations) {
-      for (const node of mutation.addedNodes) {
-        if (!(node instanceof HTMLElement)) continue;
-        animateWindow(node);
-        node.querySelectorAll?.('[role="dialog"],.modal,.popup,.window,.panel').forEach(animateWindow);
-      }
-      if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
-        const el = mutation.target;
-        if (el instanceof HTMLElement) {
-          const visible = getComputedStyle(el).display !== 'none' &&
-                          getComputedStyle(el).visibility !== 'hidden' &&
-                          el.getBoundingClientRect().width > 0;
-          if (visible) animateWindow(el);
-        }
-      }
-    }
-  });
-
-  observer.observe(document.body, {
-    childList: true,
-    subtree: true,
-    attributes: true,
-    attributeFilter: ['class','style']
-  });
-
-  // Fenêtres déjà présentes dans le DOM.
-  document.querySelectorAll('[role="dialog"],.modal,.popup,.window,.panel').forEach(animateWindow);
-})();
-</script>
 
 </body>
 </html>
