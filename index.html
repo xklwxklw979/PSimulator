@@ -8,7 +8,38 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js">
+/* === Mini-jeu câbles ordinateur : mélange à chaque partie === */
+function shuffleCables(arr) {
+  // Nouveau mélange à chaque lancement du mini-jeu.
+  if (typeof cables !== 'undefined' && typeof ports !== 'undefined') {
+    const mixed = randomizedComputerCables(cables, ports);
+    cables = mixed.cables;
+    ports = mixed.ports;
+  }
+
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function randomizedComputerCables(cables, ports) {
+  let shuffledCables = shuffleCables(cables);
+  let shuffledPorts = shuffleCables(ports);
+  // Évite exceptionnellement de redonner exactement le même ordre.
+  if (cables.length > 1 && shuffledCables.every((v, i) => v === cables[i])) {
+    [shuffledCables[0], shuffledCables[1]] = [shuffledCables[1], shuffledCables[0]];
+  }
+  if (ports.length > 1 && shuffledPorts.every((v, i) => v === ports[i])) {
+    [shuffledPorts[0], shuffledPorts[1]] = [shuffledPorts[1], shuffledPorts[0]];
+  }
+  return { cables: shuffledCables, ports: shuffledPorts };
+}
+
+</script>
 <style>
 *{box-sizing:border-box}
 :root{
@@ -331,6 +362,25 @@ label.lbl{display:block;font-weight:700;margin:12px 0 6px;font-size:14px}
   #toasts{top:auto;bottom:88px;right:8px;width:min(260px,calc(100% - 110px))}
   .card{padding:14px} .big{font-size:44px}
 }
+
+/* =================== MODE ZOMBIE =================== */
+#zombieHud{
+  position:absolute;left:12px;top:12px;z-index:6;display:none;
+  background:rgba(12,14,12,.88);color:#fff;border:2px solid rgba(255,255,255,.16);
+  border-radius:14px;padding:10px 14px;box-shadow:0 8px 24px rgba(0,0,0,.3);
+  font-weight:800;pointer-events:none;min-width:190px
+}
+#zombieHud .zh-title{font-size:16px;margin-bottom:4px}
+#zombieHud .zh-line{display:flex;gap:14px;justify-content:space-between;font-size:14px}
+#zombieHud .zh-wave{color:#ffcf5a}
+#zombieHud .zh-life{color:#ff7777}
+#zombieHud .zh-help{margin-top:5px;font-size:12px;font-weight:700;opacity:.78}
+#zombieExit{
+  position:absolute;right:12px;top:12px;z-index:6;display:none;
+  border:0;border-radius:10px;padding:9px 12px;background:rgba(12,14,12,.88);color:#fff;
+  font-weight:800;cursor:pointer
+}
+
 </style>
 </head>
 <body>
@@ -338,6 +388,15 @@ label.lbl{display:block;font-weight:700;margin:12px 0 6px;font-size:14px}
   <canvas id="game"></canvas>
 
   <div id="vignette"></div>
+
+  <div id="zombieHud">
+    <div class="zh-title">🧟 MODE ZOMBIE</div>
+    <div class="zh-line"><span class="zh-wave">Vague <b id="zWave">1</b></span><span class="zh-life">❤️ <b id="zLives">3</b></span></div>
+    <div class="zh-line"><span>Restants</span><b id="zLeft">0</b></div>
+    <div class="zh-help">F : attaquer · Échap : quitter</div>
+  </div>
+  <button id="zombieExit" type="button">✕ Quitter</button>
+
   <div id="topUI">
   <div id="daybar" hidden>
     <span id="dayLbl">Jour 1</span>
@@ -395,6 +454,7 @@ label.lbl{display:block;font-weight:700;margin:12px 0 6px;font-size:14px}
         <button class="btn go" id="joinBtn">Rejoindre</button>
       </div>
       <div class="row"><button class="btn" id="lbMenuBtn">🏆 Classement</button></div>
+      <div class="row"><button class="btn" id="zombieBtn">🧟 Mode Zombie</button></div>
       <div id="lbPreview" class="lbpreview"></div>
       <p id="status" role="status"></p>
       <p class="small muted">Commandes : ZQSD ou flèches, E pour agir, Maj pour courir, F pour lancer un colis. Attention aux encadrants en gilet orange.</p>
@@ -872,6 +932,242 @@ const SND = (() => {
 })();
 const S = (n, a) => SND.play(n, a);
 addEventListener('pointerdown', () => SND.init(), { capture: true });
+
+/* =================== MODE ZOMBIE =================== */
+let zombieMode = false;
+let zombieState = null;
+let zombieLastAttack = 0;
+
+function startZombieMode() {
+  if (G || view) {
+    // Le mode zombie est lancé depuis l'accueil ; on évite de superposer deux parties.
+    setStatus('Quitte d’abord la partie en cours.');
+    return;
+  }
+  zombieMode = true;
+  zombieState = {
+    wave: 1,
+    lives: 3,
+    zombies: [],
+    spawnLeft: 3,
+    spawnTimer: 0.2,
+    betweenWave: 0,
+    score: 0,
+    gameOver: false,
+    hitFlash: 0
+  };
+  Object.assign(me, {
+    x: 1110, y: 650, dir: -Math.PI / 2, moving: false, running: false,
+    driving: false, veh: null, walk: 0
+  });
+  $('menu').hidden = true;
+  $('zombieHud').style.display = 'block';
+  $('zombieExit').style.display = 'block';
+  $('daybar').hidden = true;
+  $('hud').hidden = true;
+  $('actionBtn').hidden = false;
+  $('actionBtn').textContent = 'F  ATTAQUER';
+  showToast('🧟 Les zombies arrivent ! Survis aux vagues.', true);
+  updateZombieHud();
+}
+
+function exitZombieMode() {
+  zombieMode = false;
+  zombieState = null;
+  $('zombieHud').style.display = 'none';
+  $('zombieExit').style.display = 'none';
+  $('actionBtn').hidden = true;
+  $('menu').hidden = false;
+  setStatus('');
+}
+
+function zombieSpawn() {
+  // Les zombies arrivent par le rideau d'entrée, puis pénètrent dans la ressourcerie.
+  const laneY = 78 + Math.random() * 62;
+  zombieState.zombies.push({
+    id: Math.random().toString(36).slice(2),
+    x: 1360 + Math.random() * 18,
+    y: laneY,
+    hp: 1,
+    speed: 42 + zombieState.wave * 3 + Math.random() * 18,
+    attackCd: 0,
+    wobble: Math.random() * Math.PI * 2,
+    hit: 0,
+    alive: true
+  });
+  zombieState.spawnLeft--;
+}
+
+function zombieTarget(z) {
+  // Ils suivent le joueur avec une légère imprécision pour donner un mouvement naturel.
+  return { x: me.x, y: me.y };
+}
+
+function zombieAttack() {
+  if (!zombieMode || !zombieState || zombieState.gameOver) return;
+  const now = performance.now();
+  if (now - zombieLastAttack < 280) return;
+  zombieLastAttack = now;
+
+  let best = null, bestD = Infinity;
+  for (const z of zombieState.zombies) {
+    if (!z.alive) continue;
+    const d = Math.hypot(z.x - me.x, z.y - me.y);
+    if (d <= 92 && d < bestD) { best = z; bestD = d; }
+  }
+
+  if (best) {
+    best.hp = 0;
+    best.alive = false;
+    best.hit = 1;
+    zombieState.score++;
+    fxAll(best.x, best.y, '+1', 'ok');
+    S('ok');
+  } else {
+    S('drop');
+  }
+}
+
+function updateZombie(dt) {
+  const zt = zombieState;
+  if (!zombieMode || !zt) return;
+
+  if (zt.gameOver) return;
+
+  // Déplacement du joueur.
+  let mx = 0, my = 0;
+  if (keys.has('arrowleft') || keys.has('q') || keys.has('a')) mx -= 1;
+  if (keys.has('arrowright') || keys.has('d')) mx += 1;
+  if (keys.has('arrowup') || keys.has('z') || keys.has('w')) my -= 1;
+  if (keys.has('arrowdown') || keys.has('s')) my += 1;
+  if (joy.active) { mx += joy.dx; my += joy.dy; }
+  const len = Math.hypot(mx, my);
+  if (len > 1) { mx /= len; my /= len; }
+  const moving = Math.abs(mx) + Math.abs(my) > 0.01;
+  if (moving) {
+    const sp = 225;
+    const nx = me.x + mx * sp * dt;
+    const ny = me.y + my * sp * dt;
+    // Le joueur reste dans la ressourcerie.
+    if (!playerBlocked(nx, me.y)) me.x = nx;
+    if (!playerBlocked(me.x, ny)) me.y = ny;
+    me.dir = Math.atan2(my, mx);
+    me.moving = true;
+    me.walk += sp * dt * 0.025;
+  } else {
+    me.moving = false;
+  }
+
+  // Apparition progressive de la vague.
+  if (zt.spawnLeft > 0) {
+    zt.spawnTimer -= dt;
+    if (zt.spawnTimer <= 0) {
+      zombieSpawn();
+      zt.spawnTimer = Math.max(0.45, 1.25 - zt.wave * 0.035);
+    }
+  }
+
+  let alive = 0;
+  for (const z of zt.zombies) {
+    if (!z.alive) continue;
+    alive++;
+    z.hit = Math.max(0, z.hit - dt);
+    z.attackCd = Math.max(0, z.attackCd - dt);
+    z.wobble += dt * 5;
+
+    const target = zombieTarget(z);
+    let dx = target.x - z.x, dy = target.y - z.y;
+    const d = Math.hypot(dx, dy) || 1;
+    dx /= d; dy /= d;
+
+    // Mouvement vers le joueur.
+    z.x += dx * z.speed * dt;
+    z.y += dy * z.speed * dt;
+
+    // Contact = perte d'une vie, puis le zombie recule.
+    if (d < 34 && z.attackCd <= 0) {
+      z.attackCd = 1.1;
+      zt.lives--;
+      z.x -= dx * 55;
+      z.y -= dy * 55;
+      zt.hitFlash = .25;
+      S('bad');
+      if (zt.lives <= 0) {
+        zt.gameOver = true;
+        showToast('💀 La ressourcerie est envahie ! Score : ' + zt.score, false);
+      }
+    }
+  }
+
+  // Nouvelle vague quand tous les zombies sont morts et que ceux de la vague sont entrés.
+  if (zt.spawnLeft === 0 && alive === 0) {
+    zt.betweenWave += dt;
+    if (zt.betweenWave >= 1.5) {
+      zt.wave++;
+      zt.spawnLeft = Math.min(3 + zt.wave * 2, 24);
+      zt.spawnTimer = .2;
+      zt.betweenWave = 0;
+      toastAll('🧟 Vague ' + zt.wave + ' ! ' + zt.spawnLeft + ' zombies arrivent.');
+    }
+  }
+
+  zt.hitFlash = Math.max(0, zt.hitFlash - dt);
+  updateZombieHud();
+}
+
+function updateZombieHud() {
+  if (!zombieState) return;
+  $('zWave').textContent = zombieState.wave;
+  $('zLives').textContent = zombieState.lives;
+  $('zLeft').textContent = zombieState.zombies.filter(z => z.alive).length + zombieState.spawnLeft;
+  if (zombieState.gameOver) $('actionBtn').textContent = 'Échap  QUITTER';
+}
+
+function drawZombieMode(now) {
+  const zt = zombieState;
+  if (!zt) return;
+
+  for (const z of zt.zombies) {
+    if (!z.alive && z.hit <= 0) continue;
+    const bob = Math.sin(z.wobble) * 3;
+    ctx.save();
+    if (!z.alive) ctx.globalAlpha = Math.max(0, z.hit);
+    emoji('🧟', z.x, z.y + bob, 34);
+    if (z.alive) {
+      ctx.fillStyle = 'rgba(0,0,0,.35)';
+      ctx.beginPath(); ctx.ellipse(z.x, z.y + 19, 15, 5, 0, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  drawPlayer(me.x, me.y, me.dir, me.moving ? me.walk : 0, myColor(), null);
+
+  // Indicate la portée du coup lorsque le joueur est dans le mode zombie.
+  ctx.save();
+  ctx.globalAlpha = .12;
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(me.x, me.y, 92, 0, Math.PI * 2); ctx.stroke();
+  ctx.restore();
+
+  if (zt.hitFlash > 0) {
+    ctx.save();
+    ctx.fillStyle = 'rgba(220,30,30,' + Math.min(.35, zt.hitFlash) + ')';
+    ctx.fillRect(camX, camY, vw, vh);
+    ctx.restore();
+  }
+
+  if (zt.gameOver) {
+    ctx.save();
+    ctx.fillStyle = 'rgba(0,0,0,.62)';
+    ctx.fillRect(camX, camY, vw, vh);
+    text('RESSOURCERIE ENVAHIE', me.x, me.y - 80, 34, '#fff', 900);
+    text('Score : ' + zt.score + ' · Vague : ' + zt.wave, me.x, me.y - 35, 20, '#fff', 800);
+    text('Échap pour revenir à l’accueil', me.x, me.y + 10, 16, '#fff', 700);
+    ctx.restore();
+  }
+}
+
 addEventListener('keydown', () => SND.init(), { capture: true });
 
 /* =================== RÉSEAU =================== */
@@ -2757,6 +3053,13 @@ addEventListener('keydown', e => {
     return;
   }
   const k = e.key.toLowerCase();
+  if (zombieMode) {
+    if (k === 'escape') { e.preventDefault(); exitZombieMode(); return; }
+    if (k === 'f' && !e.repeat) { e.preventDefault(); zombieAttack(); return; }
+    if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(k)) e.preventDefault();
+    keys.add(k);
+    return;
+  }
   const playing = view && view.phase === 'play';
   if (playing && ['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(k)) e.preventDefault();
   keys.add(k);
@@ -2769,7 +3072,7 @@ addEventListener('blur', () => keys.clear());
 
 function localPos(e) { const r = canvas.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
 canvas.addEventListener('pointerdown', e => {
-  if (!view || view.phase !== 'play' || modalOpen) return;
+  if ((!view || view.phase !== 'play') && !zombieMode || modalOpen) return;
   const p = localPos(e);
   Object.assign(joy, { active: true, id: e.pointerId, sx: p.x, sy: p.y, dx: 0, dy: 0 });
   canvas.setPointerCapture(e.pointerId);
@@ -2785,11 +3088,13 @@ const joyEnd = e => { if (e && e.pointerId !== joy.id) return; joy.active = fals
 canvas.addEventListener('pointerup', joyEnd);
 canvas.addEventListener('pointercancel', joyEnd);
 
-$('actionBtn').addEventListener('click', doAction);
 $('hudToggle').addEventListener('click', () => $('hud').classList.toggle('collapsed'));
 $('mClose').addEventListener('click', () => closeModal());
 $('createBtn').addEventListener('click', () => createGame());
 $('soloBtn').addEventListener('click', startSolo);
+$('zombieBtn').addEventListener('click', startZombieMode);
+$('zombieExit').addEventListener('click', exitZombieMode);
+$('actionBtn').addEventListener('click', () => { if (zombieMode) { if (zombieState && zombieState.gameOver) exitZombieMode(); else zombieAttack(); } else doAction(); });
 $('joinBtn').addEventListener('click', joinGame);
 $('startBtn').addEventListener('click', () => send({ t: 'start' }));
 $('nextBtn').addEventListener('click', () => send({ t: 'start' }));
@@ -3171,8 +3476,11 @@ function frame(now) {
   if (now - insLast > 160) { insLast = now; measureInsets(); }
   const fk = Math.min(1, dt * 10);
   insTop += (insTopT - insTop) * fk; insBot += (insBotT - insBot) * fk;
-  const playing = view && view.phase === 'play';
-  if (playing && !modalOpen) update(dt);
+  const playing = zombieMode || (view && view.phase === 'play');
+  if (playing && !modalOpen) {
+    if (zombieMode) updateZombie(dt);
+    else update(dt);
+  }
   if (net.isHost && G) hostFrame(now, dt);
   if (view) {
     lerpMap(rp, view.players.filter(p => p.id !== net.myId), '', dt);
@@ -3188,15 +3496,16 @@ function frame(now) {
     }
   }
   if (playing) {
-    if (!net.isHost && now - lastPosSent > 66) {
+    if (!zombieMode && !net.isHost && now - lastPosSent > 66) {
       lastPosSent = now;
       const m = { t: 'pos', x: Math.round(me.x), y: Math.round(me.y), dir: Math.round(me.dir * 100) / 100, moving: me.moving, run: !!(me.running && me.moving) };
       if (me.driving && me.veh) m.veh = { x: me.veh.x, y: me.veh.y, a: Math.round(me.veh.a * 100) / 100, v: Math.round(me.veh.v), dmg: Math.round(me.veh.dmg) };
       send(m);
     }
-    computeAction(); syncThrowBtn();
+    if (!zombieMode) { computeAction(); syncThrowBtn(); }
   } else act = null;
-  renderAction();
+  if (zombieMode) updateZombieHud();
+  else renderAction();
   draw(now / 1000, now);
   requestAnimationFrame(frame);
 }
@@ -3240,6 +3549,7 @@ function draw(t, now) {
     drawMinimap();
     drawGuide();
   }
+  if (zombieMode) drawZombieMode(now);
   if (joy.active) {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.fillStyle = 'rgba(255,255,255,.18)'; ctx.beginPath(); ctx.arc(joy.sx, joy.sy, 46, 0, 7); ctx.fill();
@@ -4859,7 +5169,7 @@ requestAnimationFrame(frame);
 })();
 </script>
 
-<div id="game-version" aria-label="Version du jeu">(1.0.1)</div>
+<div id="game-version" aria-label="Version du jeu">(1.0.2)</div>
 <style>
 #game-version {
   position: fixed;
