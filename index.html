@@ -279,17 +279,6 @@ label.lbl{display:block;font-weight:700;margin:12px 0 6px;font-size:14px}
   .avatar-choice{border:2px solid var(--line);background:var(--panel-2);border-radius:10px;padding:9px 11px;cursor:pointer;font-weight:700}.avatar-choice.on{border-color:var(--vis);background:var(--vis);color:var(--vis-ink)}
   .avatar-choice-row{display:flex;gap:7px;flex-wrap:wrap}.avatar-note{font-size:12px;color:var(--muted);line-height:1.35}
 /* Console de test (mode debug) */
-#botManageBtn{display:none}
-.botmgr{width:min(760px,calc(100vw - 28px));max-height:min(86vh,760px);overflow:auto}
-.botgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}
-.botcard{background:var(--panel-2);border:1px solid var(--line);border-radius:14px;padding:12px}
-.bothead{display:flex;align-items:center;gap:10px;margin-bottom:10px}.bothead .grow{flex:1}
-.botdot{width:14px;height:14px;border-radius:50%;box-shadow:0 0 0 2px rgba(0,0,0,.15)}
-.botfield{display:grid;gap:5px;margin:8px 0}.botfield label{font-size:12px;font-weight:800;color:var(--muted)}
-.botfield select{width:100%;padding:8px 10px;border-radius:9px;border:2px solid var(--line);background:var(--panel);}
-.botchecks{display:flex;flex-wrap:wrap;gap:6px}.botcheck{display:flex;align-items:center;gap:5px;background:var(--panel);padding:6px 8px;border-radius:9px;font-size:12px}
-.botstatus{font-size:12px;color:var(--muted);margin-top:8px}.botstatus b{color:var(--ink)}
-.botmini{font-size:11px;color:var(--muted)}
 @media(max-width:600px){.botgrid{grid-template-columns:1fr}.botmgr{padding:14px}}
 #dbgPanel{position:absolute;left:10px;bottom:10px;z-index:30;width:min(360px,calc(100% - 20px));max-height:min(78vh,640px);
   display:flex;flex-direction:column;background:var(--panel);border-radius:14px;box-shadow:var(--shadow);overflow:hidden;font-size:13px}
@@ -329,6 +318,18 @@ label.lbl{display:block;font-weight:700;margin:12px 0 6px;font-size:14px}
 .radar.clear{background:#d6f0e3;color:#1f7a55}
 .radar.near{background:#fff0c9;color:#7a5a00}
 .radar.seen{background:#f9d3cf;color:#8a1d15}
+/* ===== Attribution des bots par clic droit sur un pôle ===== */
+#botPoleMenu{position:fixed;z-index:80;min-width:260px;max-width:min(320px,calc(100vw - 24px));padding:10px;border:1px solid rgba(255,255,255,.16);border-radius:16px;background:color-mix(in srgb,var(--panel) 94%,transparent);box-shadow:0 20px 55px rgba(0,0,0,.38);backdrop-filter:blur(14px);transform-origin:var(--menu-origin,top left);animation:botPoleMenuIn .24s cubic-bezier(.18,.9,.25,1) both}
+#botPoleMenu.hidden{display:none}
+#botPoleMenu .bpm-title{display:flex;align-items:center;gap:8px;padding:8px 9px 10px;border-bottom:1px solid var(--line);margin-bottom:6px;font-weight:900}
+#botPoleMenu .bpm-title .grow,#botPoleMenu .bpm-item .grow{flex:1}
+#botPoleMenu .bpm-sub{font-size:11px;color:var(--muted);font-weight:700;padding:0 9px 6px}
+#botPoleMenu .bpm-item{width:100%;border:0;background:transparent;color:var(--ink);display:flex;align-items:center;gap:10px;padding:9px;border-radius:11px;cursor:pointer;text-align:left;font-weight:800;transition:background .15s,transform .15s}
+#botPoleMenu .bpm-item:hover{background:var(--panel-2);transform:translateX(3px)}
+#botPoleMenu .bpm-dot{width:12px;height:12px;border-radius:50%;box-shadow:0 0 0 3px rgba(255,255,255,.12);flex:none}
+#botPoleMenu .bpm-check{opacity:.75;font-size:16px}
+#botPoleMenu .bpm-unassign{margin-top:5px;border-top:1px solid var(--line);padding-top:8px;color:var(--muted)}
+@keyframes botPoleMenuIn{0%{opacity:0;transform:translateY(8px) scale(.9);filter:blur(4px)}65%{opacity:1;transform:translateY(-2px) scale(1.02);filter:blur(0)}100%{opacity:1;transform:none}}
 @media (max-width:760px){
   /* Haut : barre, pastilles d'événements et liste des tâches sont empilées, sans chevaucher le jeu */
   #topUI{display:flex;flex-direction:column;align-items:stretch;gap:6px;position:absolute;top:8px;left:8px;right:8px;z-index:4;pointer-events:none}
@@ -467,6 +468,25 @@ label.lbl{display:block;font-weight:700;margin:12px 0 6px;font-size:14px}
   .pole-window-animated,.pole-window-animated header,.pole-window-animated .pole-window-content > *,
   .apport-object,.apport-object::after,.apport-content{animation:none!important}
 }
+#tutoBox{position:absolute;left:50%;bottom:86px;transform:translateX(-50%);width:min(500px,calc(100% - 24px));background:var(--panel);border-radius:16px;box-shadow:var(--shadow);padding:10px 14px 12px;z-index:9;border:2px solid var(--vis)}
+#tutoBox[hidden]{display:none}
+.tuto-head{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);margin-bottom:6px}
+.tuto-head .grow{flex:1}
+.tuto-head .linkbtn{padding:0;font-size:12px}
+.tuto-badge{background:var(--vis);color:var(--vis-ink);border-radius:999px;padding:2px 10px;font-weight:800}
+.tuto-bar{height:5px;border-radius:99px;background:rgba(0,0,0,.12);margin-bottom:8px;overflow:hidden}
+.tuto-bar i{display:block;height:100%;width:0;background:var(--vis);transition:width .35s}
+#tutoTitle{display:block;font-size:16px}
+#tutoText{margin:4px 0 8px;font-size:14px;line-height:1.4}
+#tutoNote{margin:0 0 8px;padding:6px 10px;border-radius:10px;background:rgba(200,55,45,.12);color:#b03025;font-size:13px;font-weight:700}
+.tuto-actions{display:flex;gap:8px;flex-wrap:wrap}
+.tuto-actions .btn{flex:1 1 140px;padding:9px 12px}
+.tuto-hint{background:rgba(255,122,0,.12);border:1px dashed var(--vis);border-radius:10px;padding:8px 10px;margin:0 0 10px;font-size:13px;line-height:1.4}
+@media (max-width:760px){
+  #tutoBox{bottom:84px;padding:8px 12px 10px}
+  #tutoText{font-size:13px;margin-bottom:6px}
+  body.tuto-on #toasts{bottom:calc(88px + var(--tuto-h,0px) + 8px)}
+}
 </style>
 </head>
 <body>
@@ -493,7 +513,6 @@ label.lbl{display:block;font-weight:700;margin:12px 0 6px;font-size:14px}
     <span id="streak" class="streakchip" hidden></span>
     <button class="icon-btn" id="musicBtn" title="Musique" aria-label="Musique">🎵</button>
     <button class="icon-btn" id="sfxBtn" title="Bruitages" aria-label="Bruitages">🔊</button>
-    <button class="icon-btn" id="botManageBtn" title="Gérer les bots" aria-label="Gérer les bots">🤖</button>
     <button class="icon-btn" id="dbgBtn" hidden title="Console de test (F2)" aria-label="Console de test">🐞</button>
   </div>
 
@@ -513,6 +532,14 @@ label.lbl{display:block;font-weight:700;margin:12px 0 6px;font-size:14px}
   </div>
   <div id="alert" hidden></div>
   <div id="toasts"></div>
+  <div id="tutoBox" hidden role="region" aria-label="Tuto" aria-live="polite">
+    <div class="tuto-head"><span class="tuto-badge">🎓 Tuto</span><span id="tutoStep"></span><span class="grow"></span><button type="button" class="linkbtn" id="tutoQuit">Quitter le tuto</button></div>
+    <div class="tuto-bar"><i id="tutoProg"></i></div>
+    <strong id="tutoTitle"></strong>
+    <p id="tutoText"></p>
+    <p id="tutoNote" hidden></p>
+    <div class="tuto-actions"><button type="button" class="btn vis" id="tutoNext">Suivant</button><button type="button" class="btn" id="tutoSkip">Passer l'étape</button></div>
+  </div>
   <div id="bottomUI">
   <button id="actionBtn" hidden></button>
   <div id="touchBtns" hidden>
@@ -535,15 +562,23 @@ label.lbl{display:block;font-weight:700;margin:12px 0 6px;font-size:14px}
         <button class="btn vis" id="createBtn">Créer une partie</button>
         <button class="btn" id="soloBtn">Jouer seul</button>
       </div>
+      <div class="row"><button class="btn" id="tutoBtn">🎓 Tuto : apprendre à jouer</button></div>
       <div class="sep">ou rejoindre des amis</div>
       <div class="split">
         <input class="field" id="codeIn" maxlength="4" placeholder="CODE" autocomplete="off" aria-label="Code de la partie">
         <button class="btn go" id="joinBtn">Rejoindre</button>
       </div>
-      <div class="row"><button class="btn" id="customBtn">🧑 Personnaliser mon personnage</button><button class="btn" id="botMenuBtn">🤖 Gérer les bots</button></div>
+      <div class="row"><button class="btn" id="customBtn">🧑 Personnaliser mon personnage</button></div>
       <div class="row"><button class="btn" id="lbMenuBtn">🏆 Classement</button></div>
       <div class="row"><button class="btn" id="zombieBtn">🧟 Mode Zombie</button></div>
       <div id="lbPreview" class="lbpreview"></div>
+      <div id="adminZone">
+        <button type="button" class="linkbtn" id="adminLink">Passer en mode admin</button>
+        <div id="adminBox" hidden>
+          <div class="pwrow"><input class="field" id="adminCode" type="password" autocomplete="off" placeholder="Code admin" aria-label="Code admin"><button class="btn" id="adminGo" type="button">Valider</button></div>
+        </div>
+        <p class="small" id="adminMsg" role="status" style="margin:4px 0 0"></p>
+      </div>
       <p id="status" role="status"></p>
       <p class="small muted">Commandes : ZQSD ou flèches, E pour agir, Maj pour courir, F pour lancer un colis. Attention aux encadrants en gilet orange.</p>
       <p class="small muted" id="saveNote" style="margin:0">La progression est sauvegardée sur l'appareil de celui qui crée la partie.</p>
@@ -567,14 +602,7 @@ label.lbl{display:block;font-weight:700;margin:12px 0 6px;font-size:14px}
     </div>
   </div>
 
-  <div id="botManager" class="overlay" hidden>
-    <div class="card screen botmgr">
-      <header><h2 style="margin:0">🤖 Gestion des bots</h2><button class="close" id="botMgrClose" aria-label="Fermer">✕</button></header>
-      <p class="small muted" style="margin-top:0">Attribue un poste principal, les tâches autorisées et les types de colis que chaque bot peut transporter. Les réglages s'appliquent immédiatement en mode solo.</p>
-      <div id="botManagerBody" class="botgrid"></div>
-      <div class="row" style="margin-top:12px"><button class="btn vis" id="botMgrDone">Terminer</button></div>
-    </div>
-  </div>
+  <div id="botPoleMenu" class="hidden" role="menu" aria-label="Attribuer un bot à ce pôle"></div>
 
   <div id="modal" class="overlay" hidden>
     <div class="card" id="card" role="dialog" aria-modal="true" aria-labelledby="mTitle">
@@ -753,6 +781,7 @@ const CONTAINERS = [
     { e: '🐘', n: 'Statuette en ivoire', ok: false, why: 'Ivoire : commerce interdit, espèce protégée.' }] },
 ];
 function makeWave(nPlayers) {
+  if (typeof G !== 'undefined' && G && G.tuto) return tutoWave();        // tuto : un don simple et un don interdit
   const legal = shuffle(LEGAL).slice(0, 3);
   if (nPlayers > 1 || Math.random() < 0.3) legal[0] = pick(HEAVY);
   if (Math.random() < 0.16) legal[1] = pick(RARE);        // trouvaille : récompense variable
@@ -1444,7 +1473,7 @@ function lostConnection(msg) {
 const emptyStock = () => ({ deee: [], repair: [], jouets: [], textile: [], vaisselle: [], livres: [], deco: [], sport: [], velo: [], reserve: [] });
 function loadSave() { try { return JSON.parse(localStorage.getItem('paiss-save') || 'null'); } catch (e) { return null; } }
 function writeSave() {
-  if (!G) return;
+  if (!G || G.tuto) return;                                               // le tuto n'écrit jamais la sauvegarde
   try { localStorage.setItem('paiss-save', JSON.stringify({ day: G.day, bank: G.bank, upg: G.upg, best: G.best, shelved: G.shelved.slice(0, 40) })); } catch (e) {}
 }
 function newState(save) {
@@ -1515,10 +1544,32 @@ const BOT_TASKS = ['apport','test','repair','sport','vaisselle','jouets','deco',
 const BOT_TASK_LABELS = { apport:'Réception des dons', test:'Test électrique', repair:'Réparation', sport:'Pôle sport', vaisselle:'Pôle vaisselle', jouets:'Pôle jouets', deco:'Pôle déco', livres:'Pôle livres', textile:'Pôle textile', velo:'Pôle vélo', etiquette:'Étiquetage', caisse:'Caisse' };
 const BOT_CARRY_TYPES = ['deee','repair','jouets','textile','vaisselle','livres','deco','sport','velo'];
 const BOT_CARRY_LABELS = { deee:'DEEE', repair:'Réparation', jouets:'Jouets', textile:'Textile', vaisselle:'Vaisselle', livres:'Livres', deco:'Déco', sport:'Sport', velo:'Vélos' };
-function defaultBotConfig(){ return { primary:'auto', tasks:Object.fromEntries(BOT_TASKS.map(x=>[x,true])), carry:Object.fromEntries(BOT_CARRY_TYPES.map(x=>[x,true])), carryHeavy:true }; }
-function normalizeBotConfig(c){ const d=defaultBotConfig(); c=c&&typeof c==='object'?c:{}; d.primary=BOT_TASKS.includes(c.primary)||c.primary==='auto'?c.primary:'auto'; for(const x of BOT_TASKS) d.tasks[x]=c.tasks&&typeof c.tasks==='object'?c.tasks[x]!==false:true; for(const x of BOT_CARRY_TYPES) d.carry[x]=c.carry&&typeof c.carry==='object'?c.carry[x]!==false:true; d.carryHeavy=c.carryHeavy!==false; return d; }
+function defaultBotConfig(){ return { primary:'auto', assignedPole:null, tasks:Object.fromEntries(BOT_TASKS.map(x=>[x,true])), carry:Object.fromEntries(BOT_CARRY_TYPES.map(x=>[x,true])), carryHeavy:true }; }
+function normalizeBotConfig(c){ const d=defaultBotConfig(); c=c&&typeof c==='object'?c:{}; d.primary=BOT_TASKS.includes(c.primary)||c.primary==='auto'?c.primary:'auto'; d.assignedPole=POLES[c.assignedPole]?c.assignedPole:null; for(const x of BOT_TASKS) d.tasks[x]=c.tasks&&typeof c.tasks==='object'?c.tasks[x]!==false:true; for(const x of BOT_CARRY_TYPES) d.carry[x]=c.carry&&typeof c.carry==='object'?c.carry[x]!==false:true; d.carryHeavy=c.carryHeavy!==false; return d; }
 function botAllowsTask(b,st){ const c=normalizeBotConfig(b.config); if(st==='__rayon__') return true; if(c.primary!=='auto' && st!==c.primary) return false; return c.tasks[st]!==false; }
-function botAllowsCarry(b,item){ const c=normalizeBotConfig(b.config); if(item.heavy && !c.carryHeavy) return false; return c.carry[item.cat]!==false; }
+function botAllowsCarry(b,item){
+  const c=normalizeBotConfig(b.config);
+  if(item.heavy && !c.carryHeavy) return false;
+  if(c.carry[item.cat]===false) return false;
+  /* Un bot affecté à un pôle ne va plus explorer la carte pour ramasser
+     n'importe quel objet : il ne transporte que ce qui alimente son poste. */
+  if(c.assignedPole){
+    const allowed = {
+      apport:['deee','repair','jouets','textile','vaisselle','livres','deco','sport','velo'],
+      deee:['deee','repair'], sport:['sport'], vaisselle:['vaisselle'], jouets:['jouets'],
+      deco:['deco'], livres:['livres'], textile:['textile'], velo:['velo'],
+      reserve:['reserve'], magasin:['magasin']
+    }[c.assignedPole];
+    if(allowed && !allowed.includes(item.dest) && !allowed.includes(item.cat)) return false;
+  }
+  return true;
+}
+function botCanSeekFloorObject(b){ return !normalizeBotConfig(b.config).assignedPole; }
+function botPoleHeadPos(pole){
+  const z = poleZones.find(x=>x.k===pole);
+  if(!z) return null;
+  return {x:z.x+z.w-22,y:z.y+22};
+}
 function botConfigSave(){ try{ localStorage.setItem('paiss-bot-config',JSON.stringify((G.bots||[]).map(b=>({id:b.id,config:normalizeBotConfig(b.config)})))); }catch(e){} }
 function botConfigLoad(){ try{ const a=JSON.parse(localStorage.getItem('paiss-bot-config')||'[]'); return new Map(a.map(x=>[x.id,normalizeBotConfig(x.config)])); }catch(e){ return new Map(); } }
 function makeSoloBots() {
@@ -1528,7 +1579,7 @@ function makeSoloBots() {
     { id: 'bot-1', name: 'Bot Lina', color: '#4f86c6', x: 1015, y: 830, dir: -Math.PI/2,
       target: null, carry: null, workUntil: 0, station: null, res: null, task: null, taskLabel: '', taskStarted: 0, taskDur: 0, config: defaultBotConfig() },
     { id: 'bot-2', name: 'Bot Sam', color: '#8a6dc2', x: 1105, y: 830, dir: -Math.PI/2,
-      target: null, carry: null, workUntil: 0, station: null, res: null, task: null, taskLabel: '', taskStarted: 0, taskDur: 0, config: saved.get('bot-1') || defaultBotConfig() }
+      target: null, carry: null, workUntil: 0, station: null, res: null, task: null, taskLabel: '', taskStarted: 0, taskDur: 0, config: saved.get('bot-2') || defaultBotConfig() }
   ];
 }
 function botById(id) { return (G && G.bots || []).find(b => b.id === id); }
@@ -1556,7 +1607,7 @@ function botClearTask(b) {
 }
 function botCanUseStation(st) {
   if (G.locks[st]) return false;
-  if (G.events.some(e => e.blocks.includes(st))) return false;
+  if (G.events.some(e => ((EVENTS[e.type] && EVENTS[e.type].blocks) || []).includes(st))) return false;   // « blocks » est dans EVENTS[type], pas dans l'événement
   return true;
 }
 function botOpenTask(b, st) {
@@ -1594,8 +1645,41 @@ function botFinishTask(b) {
   botClearTask(b);
   b.workUntil = G.t + 0.6;
 }
+const BOT_POLE_TASKS = { apport:['apport'], deee:['test','repair'], sport:['sport'], vaisselle:['vaisselle'], jouets:['jouets'], deco:['deco'], livres:['livres'], textile:['textile'], velo:['velo'], reserve:['etiquette'], magasin:['caisse'] };
+function botAssignedTasks(b){ const c=normalizeBotConfig(b.config); return c.assignedPole ? (BOT_POLE_TASKS[c.assignedPole] || []) : []; }
+function botAssignPole(b,pole){
+  if(!b||!POLES[pole])return;
+  b.config=normalizeBotConfig(b.config);
+  b.config.assignedPole=pole;
+  botConfigSave();
+  /* Une affectation ne coupe jamais un mini-jeu en cours : le bot le termine,
+     puis son prochain choix de travail est exclusivement celui du poste attribué. */
+  b.assignmentChangedAt=G.t;
+  b.assignmentPending = true;
+  fxAll(b.x,b.y-32,'Poste : '+POLES[pole].label,'good');
+  showToast(b.name+' affecté au pôle '+POLES[pole].label);
+}
+function botUnassignPole(b){
+  if(!b)return;
+  b.config=normalizeBotConfig(b.config);
+  b.config.assignedPole=null;
+  botConfigSave();
+  b.assignmentChangedAt=G.t;
+  showToast(b.name+' repasse en mode automatique');
+}
 function botFindWork(b) {
   const cfg = normalizeBotConfig(b.config);
+  const assigned = botAssignedTasks(b);
+  /* Dès qu'un poste est attribué, l'automatisation générale est suspendue.
+     Le bot termine ce qu'il faisait déjà (géré dans updateSoloBots), puis
+     cherche uniquement du travail correspondant à son poste. */
+  if (assigned.length) {
+    if (assigned.includes('apport') && G.donors.some(d=>d.state==='wait') && botCanUseStation('apport')) return 'apport';
+    for (const st of assigned) if (botAllowsTask(b,st) && G.stock[st] && G.stock[st].length && botCanUseStation(st)) return st;
+    if (assigned.includes('etiquette') && G.stock.reserve.length && botCanUseStation('etiquette')) return 'etiquette';
+    if (assigned.includes('caisse') && readyCustomer() && botCanUseStation('caisse')) return 'caisse';
+    return null;
+  }
   /* Poste principal : le bot reste spécialisé tant qu'il y a du travail. */
   if (cfg.primary !== 'auto' && botAllowsTask(b,cfg.primary)) {
     if (cfg.primary === 'apport' && G.donors.some(d => d.state === 'wait') && botCanUseStation('apport')) return 'apport';
@@ -1642,37 +1726,83 @@ function updateSoloBots(dt) {
     if (c) {
       let tx, ty;
       if (c.dest === 'magasin') {
-        tx = 1120; ty = 1275; // rayon
+        tx = 1120; ty = 1275;
       } else {
         const st = STATIONS.find(st => st.bac === c.dest);
         if (!st) { c.carriers = []; b.carry = null; b.target = null; continue; }
         tx = st.x; ty = st.y;
       }
-      b.dir = Math.atan2(ty - b.y, tx - b.x);
-      c.x = b.x; c.y = b.y;
-      if (moveTo(b, tx, ty, speed, dt)) {
-        G.colis = G.colis.filter(x => x !== c);
-        const item = { e:c.e, n:c.n, cat:c.cat, heavy:c.heavy, price:c.price };
-        if (c.dest === 'magasin') {
-          G.shelved.push(item);
-          fxAll(tx, ty - 40, b.name + ' met un article en rayon', 'good');
-        } else {
-          G.stock[c.dest].push(item);
-          fxAll(tx, ty - 40, b.name + ' livre la réserve', 'good');
+      const leader = c.carriers[0] === b.id;
+      const partner = c.heavy ? botById(c.carriers.find(id=>id!==b.id)) : null;
+      if (c.heavy && c.carriers.length < 2) continue;
+      if (c.heavy && partner) {
+        /* Le partenaire suit le leader : ils restent physiquement ensemble. */
+        const anchor = leader ? b : partner;
+        if (!leader) {
+          b.dir = Math.atan2(anchor.y-b.y, anchor.x-b.x);
+          botMoveTo(b, anchor.x, anchor.y, speed*0.92, dt, c.id);
+          c.x = (anchor.x+b.x)/2; c.y = (anchor.y+b.y)/2;
+          continue;
         }
-        b.carry = null; b.target = null; b.workUntil = G.t + 0.35;
+        b.dir = Math.atan2(ty - b.y, tx - b.x);
+        botMoveTo(b, tx, ty, speed*0.82, dt, c.id);
+        partner.dir = Math.atan2(b.y-partner.y, b.x-partner.x);
+        botMoveTo(partner, b.x, b.y, speed*0.82, dt, c.id);
+        c.x = (b.x+partner.x)/2; c.y = (b.y+partner.y)/2;
+        if (Math.hypot(b.x-tx,b.y-ty)<5 && Math.hypot(partner.x-tx,partner.y-ty)<70) {
+          G.colis = G.colis.filter(x => x !== c);
+          const item = { e:c.e, n:c.n, cat:c.cat, heavy:c.heavy, price:c.price };
+          if (c.dest === 'magasin') { G.shelved.push(item); fxAll(tx, ty-40, b.name+' + '+partner.name+' mettent un article en rayon','good'); }
+          else { G.stock[c.dest].push(item); fxAll(tx, ty-40, b.name+' + '+partner.name+' livrent ensemble','good'); }
+          b.carry = null; partner.carry = null; b.workUntil = G.t + 0.35; partner.workUntil = G.t + 0.35;
+        }
+      } else {
+        b.dir = Math.atan2(ty - b.y, tx - b.x);
+        c.x = b.x; c.y = b.y;
+        if (botMoveTo(b, tx, ty, speed, dt, c.id)) {
+          G.colis = G.colis.filter(x => x !== c);
+          const item = { e:c.e, n:c.n, cat:c.cat, heavy:c.heavy, price:c.price };
+          if (c.dest === 'magasin') { G.shelved.push(item); fxAll(tx, ty-40, b.name+' met un article en rayon','good'); }
+          else { G.stock[c.dest].push(item); fxAll(tx, ty-40, b.name+' livre la réserve','good'); }
+          b.carry = null; b.target = null; b.workUntil = G.t + 0.35;
+        }
       }
       continue;
     }
 
-    /* Prendre le prochain colis issu de la réception / d'un mini-jeu. */
-    c = G.colis.find(x => !x.carriers.length && botAllowsCarry(b,x) &&
-      !(G.bots || []).some(o => o.target === x.id && o !== b));
-    if (c) {
-      b.target = c.id;
+    /* Un bot affecté à un poste ne part plus chercher des objets au hasard.
+       Il reste piloté par son poste et ne transporte que les colis utiles à ce poste. */
+    if (botCanSeekFloorObject(b)) {
+      c = G.colis.find(x => !x.carriers.length && botAllowsCarry(b,x) &&
+        !(G.bots || []).some(o => o.target === x.id && o !== b));
+      if (c) {
+        if (c.heavy) {
+          /* Les gros objets nécessitent obligatoirement deux bots : le premier
+             réserve le colis et le second vient automatiquement l'aider. */
+          const partner = (G.bots||[]).find(o => o !== b && !o.task && !o.carry && !o.target && botAllowsCarry(o,c));
+          if (partner) {
+            b.target = c.id; partner.target = c.id;
+          }
+        } else {
+          b.target = c.id;
+        }
+      }
+    }
+    if (b.target) {
+      c = G.colis.find(x => x.id === b.target);
+      if (!c) { b.target = null; continue; }
       b.dir = Math.atan2(c.y - b.y, c.x - b.x);
-      if (moveTo(b, c.x, c.y, speed, dt)) {
-        c.carriers = [b.id]; b.carry = c.id; b.target = null;
+      if (botMoveTo(b, c.x, c.y, speed, dt, c.id)) {
+        if (c.heavy) {
+          const partner = (G.bots||[]).find(o => o !== b && o.target === c.id && !o.task && !o.carry);
+          if (partner && Math.hypot(partner.x-c.x, partner.y-c.y) < 34) {
+            c.carriers = [b.id, partner.id];
+            b.carry = c.id; partner.carry = c.id;
+            b.target = null; partner.target = null;
+          }
+        } else {
+          c.carriers = [b.id]; b.carry = c.id; b.target = null;
+        }
       }
       continue;
     }
@@ -1684,7 +1814,7 @@ function updateSoloBots(dt) {
       if (shop) {
         b.target = shop.id;
         b.dir = Math.atan2(shop.y - b.y, shop.x - b.x);
-        if (moveTo(b, shop.x, shop.y, speed, dt)) { shop.carriers=[b.id]; b.carry=shop.id; b.target=null; }
+        if (botMoveTo(b, shop.x, shop.y, speed, dt, shop.id)) { shop.carriers=[b.id]; b.carry=shop.id; b.target=null; }
       }
       continue;
     }
@@ -1692,14 +1822,26 @@ function updateSoloBots(dt) {
       const station = STATIONS.find(s => s.id === st);
       if (!station) continue;
       b.dir = Math.atan2(station.y - b.y, station.x - b.x);
-      if (moveTo(b, station.x, station.y, speed, dt)) botOpenTask(b, st);
+      if (botMoveTo(b, station.x, station.y, speed, dt)) botOpenTask(b, st);
       continue;
     }
 
-    /* Pas de tâche : retour au centre de la boutique. */
+    /* Pas de tâche : un bot affecté reste à son poste et attend du travail.
+       Un bot sans affectation conserve son comportement automatique et rentre au centre. */
+    const assignedPole = normalizeBotConfig(b.config).assignedPole;
+    if (assignedPole) {
+      const assignedTasks = botAssignedTasks(b);
+      const waitTask = assignedTasks.find(st => STATIONS.some(x => x.id === st));
+      const station = waitTask ? STATIONS.find(x => x.id === waitTask) : null;
+      if (station) {
+        b.dir = Math.atan2(station.y - b.y, station.x - b.x);
+        botMoveTo(b, station.x, station.y, speed * 0.75, dt);
+        continue;
+      }
+    }
     const home = { x: 1060 + (b.id === 'bot-2' ? 80 : 0), y: 830 };
     b.dir = Math.atan2(home.y - b.y, home.x - b.x);
-    moveTo(b, home.x, home.y, speed * 0.75, dt);
+    botMoveTo(b, home.x, home.y, speed * 0.75, dt);
   }
 }
 
@@ -1744,7 +1886,7 @@ const repDown = n => { G.rep = Math.max(0, G.rep - n); };
 function snapshot() {
   const firstReady = readyCustomer();
   return {
-    t: 'snap', phase: G.phase, code: net.code, host: net.myId,
+    t: 'snap', phase: G.phase, code: net.code, host: net.myId, tuto: !!G.tuto,
     day: G.day, goal: G.goal || goalFor(G.day, G.players.size), revenue: G.revenue, bank: G.bank,
     combo: G.combo, comboT: Math.round(G.comboT || 0), timeLeft: G.timeLeft, dayLen: G.dayLen, upg: G.upg, best: G.best, last: G.last,
     errors: G.errors, strikes: G.strikes, rep: Math.round(G.rep), insp: Math.ceil(G.insp || 0),
@@ -1760,7 +1902,7 @@ function snapshot() {
     events: G.events.map(e => ({ id: e.id, type: e.type, left: Math.ceil(e.left), missed: e.missed, busy: !!e.lockBy,
       rx: e.rob ? Math.round(e.rob.x) : null, ry: e.rob ? Math.round(e.rob.y) : null,
       re: e.rob ? (e.rob.item ? e.rob.item.e : (e.rob.phase === 'flee' ? '🎁' : null)) : null, grab: e.rob ? e.rob.phase === 'grab' : false })),
-    bots: (G.bots || []).map(b => ({ id:b.id,name:b.name,color:b.color,x:Math.round(b.x),y:Math.round(b.y),dir:+b.dir.toFixed(2),carry:b.carry,task:b.task,taskLabel:b.taskLabel,taskProgress:b.taskDur?clamp((G.t-b.taskStarted)/b.taskDur,0,1):0 })),
+    bots: (G.bots || []).map(b => ({ id:b.id,name:b.name,color:b.color,assignedPole:normalizeBotConfig(b.config).assignedPole,x:Math.round(b.x),y:Math.round(b.y),dir:+b.dir.toFixed(2),carry:b.carry,task:b.task,taskLabel:b.taskLabel,taskProgress:b.taskDur?clamp((G.t-b.taskStarted)/b.taskDur,0,1):0 })),
     players: [...G.players.values()].map(p => ({ id: p.id, name: p.name, color: p.color, avatar: p.avatar || null,
       x: Math.round(p.x), y: Math.round(p.y), dir: Math.round(p.dir * 100) / 100, moving: p.moving, station: p.station,
       fz: Math.ceil(p.frozen || 0), cd: Math.max(0, Math.ceil((p.cheatCd || 0) - G.t)), acct: !!p.acct, driving: !!p.driving })),
@@ -1852,6 +1994,11 @@ function triggerEvent() {
 }
 function updateRobert(ev, dt) {
   const r = ev.rob;
+  if (!r || !Number.isFinite(r.x) || !Number.isFinite(r.y)) {
+    if (r) { r.x = COWORKERS.robert.x; r.y = COWORKERS.robert.y; }
+    return;
+  }
+  if (!Array.isArray(r.path)) r.path = [];
   if (r.phase === 'grab') {
     const c = G.colis.find(c => c.id === r.target && !c.carriers.length);
     if (!c) { r.phase = 'flee'; r.path = ROB_PATH.map(q => q.slice()); return; }
@@ -1863,7 +2010,11 @@ function updateRobert(ev, dt) {
     }
     return;
   }
-  if (r.path.length && moveTo(r, r.path[0][0], r.path[0][1], 72, dt)) r.path.shift();
+  if (r.path.length) {
+    const q = r.path[0];
+    if (!Array.isArray(q) || !Number.isFinite(q[0]) || !Number.isFinite(q[1])) r.path.shift();
+    else if (moveTo(r, q[0], q[1], 72, dt)) r.path.shift();
+  }
   let d = 0, px = r.x, py = r.y;
   for (const q of r.path) { d += Math.hypot(q[0] - px, q[1] - py); px = q[0]; py = q[1]; }
   ev.left = d / 72;
@@ -1940,7 +2091,7 @@ function startDay() {
   (G.bots || []).forEach((b,j) => { b.x=1015+j*90; b.y=830; b.target=null; b.carry=null; b.workUntil=0; b.station=null; b.res=null; b.task=null; b.taskLabel=''; b.taskStarted=0; b.taskDur=0; });
   makeEnc();
   hostTick();
-  if (G.day === 1) {
+  if (G.day === 1 && !G.tuto) {
     const tips = [
       [1500, 'Un donneur attend à l\'Apport, tout en haut. Accepte ce qui est légal, refuse le reste.'],
       [9000, 'Porte chaque colis au bac de son pôle : la pastille de couleur indique où il va.'],
@@ -2037,6 +2188,7 @@ function hostOpen(p, st) {
   if (G.locks[st]) { const o = G.players.get(G.locks[st]); return deny('Poste occupé par ' + (o ? o.name : 'quelqu\'un') + '.'); }
   const r = reserveFor(st); if (typeof r === 'string') return deny(r);
   G.locks[st] = p.id; p.station = st; p.res = r;
+  tutoEvent('open', st);
   sendTo(p.id, { t: 'open_ok', st, ctx: r.ctx || {} });
 }
 function hostRelease(p, st, giveBack) {
@@ -2049,6 +2201,7 @@ function hostRelease(p, st, giveBack) {
 }
 function hostDone(p, st, data) {
   if (G.locks[st] !== p.id) return;
+  tutoEvent('done', st);
   const res = p.res || {};
   delete G.locks[st]; p.station = null; p.res = null;
   if (data.bacle) { G.bacleOk++; repDown(3); }          // bâcler : efficace mais mal vu
@@ -2139,6 +2292,7 @@ function hostPickup(p, cid) {
   if (Math.hypot(c.x - p.x, c.y - p.y) > 80) return;
   if (c.carriers.length >= (c.heavy ? 2 : 1)) return;
   c.carriers.push(p.id);
+  tutoEvent('pickup', c);
 }
 function nearestBac(x, y) {
   let best = null;
@@ -2168,9 +2322,11 @@ function hostDrop(p) {
       const item = { e: c.e, n: c.n, cat: c.cat, heavy: c.heavy, price: c.price };
       if (c.dest === 'magasin') { G.shelved.push(item); fxAll(s.x, s.y - 40, 'En rayon', 'good'); }
       else { G.stock[c.dest].push(item); fxAll(s.x, s.y - 40, 'Livré', 'good'); }
+      tutoEvent('delivered', c);
       return;
     }
     G.errors++; comboBreak(c.x, c.y - 60); repDown(4);
+    tutoEvent('wrong', c);
     c.carriers = [];
     fxAll(c.x, c.y - 40, 'Mauvais bac : ' + POLES[c.dest].label, 'bad');
     return;
@@ -2181,6 +2337,150 @@ function moveTo(o, tx, ty, sp, dt) {
   const dx = tx - o.x, dy = ty - o.y, d = Math.hypot(dx, dy);
   if (d < 3) { o.x = tx; o.y = ty; return true; }
   const k = Math.min(1, sp * dt / d); o.x += dx * k; o.y += dy * k; return false;
+}
+
+/* Déplacement des bots avec collision réelle. Les bots ne peuvent ni traverser
+   les murs, ni les meubles/objets solides, et avancent par petits pas pour éviter
+   de "téléporter" à travers un obstacle quand ils courent vite. */
+function botSolidHit(x, y, r, self, targetId) {
+  if (x < r + 18 || y < r + 18 || x > W - r - 18 || y > H - r - 18) return true;
+  for (const q of walls) if (hitRect(x, y, r, q)) return true;
+  for (const q of furniture) if (hitRect(x, y, r, q)) return true;
+  /* Les colis sont des obstacles physiques, sauf celui que le bot vient chercher
+     ou celui qu'il transporte déjà. */
+  for (const q of (G.colis || [])) {
+    if (q.id === targetId || q.carriers?.includes(self?.id)) continue;
+    if (hitRect(x, y, r + 5, {x:q.x-14,y:q.y-14,w:28,h:28})) return true;
+  }
+  /* Évite les autres bots : ils restent des corps physiques, sans collision avec
+     le partenaire pendant un transport lourd. */
+  for (const q of (G.bots || [])) {
+    if (!self || q === self) continue;
+    if (self.carry && q.carry === self.carry) continue;
+    if (Math.hypot(x-q.x,y-q.y) < r + 13) return true;
+  }
+  return false;
+}
+function botNavBlocked(x, y, r, self, targetId=null) {
+  if (x < r + 18 || y < r + 18 || x > W - r - 18 || y > H - r - 18) return true;
+  for (const q of walls) if (hitRect(x, y, r, q)) return true;
+  for (const q of furniture) if (hitRect(x, y, r, q)) return true;
+  for (const q of (G.colis || [])) {
+    if (q.id === targetId || q.carriers?.includes(self?.id)) continue;
+    if (hitRect(x, y, r + 5, {x:q.x-14,y:q.y-14,w:28,h:28})) return true;
+  }
+  for (const q of (G.bots || [])) {
+    if (!self || q === self) continue;
+    if (self.carry && q.carry === self.carry) continue;
+    if (Math.hypot(x-q.x,y-q.y) < r + 13) return true;
+  }
+  return false;
+}
+function botLineFree(o, x1, y1, x2, y2, targetId=null) {
+  const d=Math.hypot(x2-x1,y2-y1), n=Math.max(1,Math.ceil(d/10));
+  for(let i=1;i<=n;i++){
+    const t=i/n, x=x1+(x2-x1)*t, y=y1+(y2-y1)*t;
+    if(botNavBlocked(x,y,14,o,targetId)) return false;
+  }
+  return true;
+}
+function botStaticBlocked(x, y, r=15) {
+  if (x < r + 18 || y < r + 18 || x > W - r - 18 || y > H - r - 18) return true;
+  for (const q of walls) if (hitRect(x, y, r, q)) return true;
+  for (const q of furniture) if (hitRect(x, y, r, q)) return true;
+  return false;
+}
+/* Recherche de chemin uniquement sur les obstacles statiques.
+   Les colis et autres bots restent gérés par botNavBlocked pendant le déplacement.
+   Cela évite de refaire des milliers de tests dynamiques à chaque recalcul. */
+function botFindPath(o, tx, ty, targetId=null) {
+  const CELL=40, cols=Math.ceil(W/CELL), rows=Math.ceil(H/CELL);
+  const sx=Math.max(0,Math.min(cols-1,Math.floor(o.x/CELL))), sy=Math.max(0,Math.min(rows-1,Math.floor(o.y/CELL)));
+  const gx=Math.max(0,Math.min(cols-1,Math.floor(tx/CELL))), gy=Math.max(0,Math.min(rows-1,Math.floor(ty/CELL)));
+  const key=`${gx},${gy}`;
+  if(o.nav && o.nav.key===key && G.t-o.nav.at<0.45 && o.nav.path?.length) return o.nav.path;
+
+  const blocked=new Uint8Array(cols*rows);
+  const idx=(x,y)=>y*cols+x;
+  for(let y=0;y<rows;y++) for(let x=0;x<cols;x++) {
+    const px=x*CELL+CELL/2, py=y*CELL+CELL/2;
+    blocked[idx(x,y)]=botStaticBlocked(px,py,16)?1:0;
+  }
+  const si=idx(sx,sy), gi=idx(gx,gy);
+  blocked[si]=0; blocked[gi]=0;
+
+  const open=[si], came=new Int32Array(cols*rows); came.fill(-1);
+  const gScore=new Float32Array(cols*rows); gScore.fill(Infinity); gScore[si]=0;
+  const fScore=new Float32Array(cols*rows); fScore.fill(Infinity);
+  fScore[si]=Math.abs(gx-sx)+Math.abs(gy-sy);
+  const closed=new Uint8Array(cols*rows);
+  const dirs=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,1],[1,-1],[-1,-1]];
+  let found=false, guard=0;
+  while(open.length && guard++<3500){
+    let best=0;
+    for(let i=1;i<open.length;i++) if(fScore[open[i]]<fScore[open[best]]) best=i;
+    const cur=open.splice(best,1)[0];
+    if(cur===gi){found=true;break;}
+    if(closed[cur])continue;
+    closed[cur]=1;
+    const cx=cur%cols, cy=Math.floor(cur/cols);
+    for(const [dx,dy] of dirs){
+      const nx=cx+dx,ny=cy+dy;
+      if(nx<0||ny<0||nx>=cols||ny>=rows)continue;
+      const ni=idx(nx,ny);
+      if(blocked[ni]||closed[ni])continue;
+      if(dx&&dy&&(blocked[idx(cx+dx,cy)]||blocked[idx(cx,cy+dy)]))continue;
+      const ng=gScore[cur]+(dx&&dy?1.414:1);
+      if(ng<gScore[ni]){came[ni]=cur;gScore[ni]=ng;fScore[ni]=ng+Math.abs(gx-nx)+Math.abs(gy-ny);open.push(ni);}
+    }
+  }
+  if(!found){o.nav={key,at:G.t,path:[]};return []}
+
+  const rev=[];let cur=gi;
+  while(cur!==si&&cur>=0){const x=cur%cols,y=Math.floor(cur/cols);rev.push([x*CELL+CELL/2,y*CELL+CELL/2]);cur=came[cur];}
+  rev.reverse();
+
+  /* Lissage léger : on ne fait les tests dynamiques que sur quelques points. */
+  const smooth=[];let fromX=o.x,fromY=o.y;
+  for(let i=0;i<rev.length;i++){
+    let far=i;
+    for(let j=Math.min(rev.length-1,i+5);j>i;j--){
+      if(botLineFree(o,fromX,fromY,rev[j][0],rev[j][1],targetId)){far=j;break;}
+    }
+    smooth.push(rev[far]);fromX=rev[far][0];fromY=rev[far][1];i=far;
+  }
+  if(!smooth.length || !botLineFree(o,fromX,fromY,tx,ty,targetId)) smooth.push([tx,ty]);
+  else smooth[smooth.length-1]=[tx,ty];
+  o.nav={key,at:G.t,path:smooth};
+  return smooth;
+}
+function botMoveTo(o, tx, ty, sp, dt, targetId=null) {
+  const d=Math.hypot(tx-o.x,ty-o.y);
+  if(d<5){o.x=tx;o.y=ty;o.nav=null;return true;}
+  /* Trajet direct si possible : les bots ne font un détour que lorsqu'il existe réellement un obstacle. */
+  if(botLineFree(o,o.x,o.y,tx,ty,targetId)){o.nav=null;}
+  else {
+    const path=botFindPath(o,tx,ty,targetId);
+    if(path.length){
+      while(path.length>1 && botLineFree(o,o.x,o.y,path[1][0],path[1][1],targetId)) path.shift();
+      const p=path[0];
+      if(Math.hypot(p[0]-o.x,p[1]-o.y)<10){path.shift();o.nav.at=G.t;}
+      if(!path.length)return false;
+      tx=p[0];ty=p[1];
+    }
+  }
+  const dx=tx-o.x,dy=ty-o.y,dd=Math.hypot(dx,dy); if(dd<1)return false;
+  const travel=Math.min(dd,sp*dt), steps=Math.max(1,Math.ceil(travel/6));
+  const sx=dx/dd*travel/steps,sy=dy/dd*travel/steps;
+  for(let i=0;i<steps;i++){
+    if(!botNavBlocked(o.x+sx,o.y+sy,14,o,targetId)) {o.x+=sx;o.y+=sy;continue;}
+    /* Petit glissement de sécurité, puis on laisse le pathfinding recalculer. */
+    if(!botNavBlocked(o.x+sx,o.y,14,o,targetId)) o.x+=sx;
+    else if(!botNavBlocked(o.x,o.y+sy,14,o,targetId)) o.y+=sy;
+    else {o.nav=null;break;}
+  }
+  o.dir=Math.atan2(ty-o.y,tx-o.x);
+  return Math.hypot((o.nav?.path?.[0]?.[0]??tx)-o.x,(o.nav?.path?.[0]?.[1]??ty)-o.y)<8 && Math.hypot(tx-o.x,ty-o.y)<8;
 }
 function customerLeave(c, angry) {
   G.queue = G.queue.filter(id => id !== c.id);
@@ -2329,7 +2629,7 @@ function updateCheats() {
     }
   }
 }
-/* =================== CONSOLE DE TEST (compte admin) ===================
+/* =================== CONSOLE DE TEST (mode admin) ===================
    Toutes les actions passent par l'hôte : un joueur admin envoie {t:'dbg'} et l'hôte applique.
    Une journée touchée par la console n'est pas classée, sauf demande explicite. */
 function forceEvent(type) {
@@ -2528,7 +2828,7 @@ function hostFrame(now, dt) {
   G.gate += ((G.gateT || 0) - (G.gate || 0)) * Math.min(1, dt * 4);
   if (G.phase === 'play' && !G.paused) {
     G.t += dt; G.timeLeft = G.dayLen - G.t;
-    paceUpdate(dt);
+    if (G.tuto) tutoUpdate(dt); else paceUpdate(dt);
     updateNPCs(dt);
     updateSoloBots(dt);
     updateEvents(dt);
@@ -2812,7 +3112,6 @@ const LB = (() => {
     const cred = await makeCred(pass);
     const rec = recCode();
     const acc = { name, salt: cred.salt, hash: cred.hash, created: Date.now(), last: Date.now() };
-    if (key === 'admin') acc.admin = true;                    // le pseudo « admin » ouvre la console de test
     await setRecovery(acc, rec);
     all[key] = acc;
     if (!saveAccounts(all)) return { ok: false, error: 'Écriture impossible dans le stockage du navigateur (navigation privée ?).' };
@@ -2979,7 +3278,7 @@ const LB = (() => {
   }
   const apronOf = name => { const acc = accounts()[fold(name)]; return acc ? (acc.apron || null) : null; };
 
-  /* ----- Outils de test (compte admin) ----- */
+  /* ----- Outils de test (ancien indicateur de compte, plus utilisé) ----- */
   function setAdmin(name, on) {
     const all = accounts(), acc = all[fold(name)]; if (!acc) return { ok: false, error: 'Compte introuvable.' };
     acc.admin = !!on; saveAccounts(all);
@@ -3007,12 +3306,48 @@ const LB = (() => {
 })();
 /* === LB-BACKEND-END === */
 
-/* ----- Console de test (compte admin uniquement) ----- */
-const ADMIN_CODE = 'PAISS-DEBUG';
-const isAdmin = () => { const pr = myProgress(); return !!(pr && pr.admin); };
+/* ----- Mode admin : propre à l'appareil, activé par un code saisi depuis l'accueil (aucun compte requis) -----
+   Le code n'est pas écrit dans le fichier, seulement son empreinte SHA-256.
+   Attention : tout est côté navigateur, donc ce n'est pas une vraie sécurité (voir LISEZMOI). */
+const ADMIN_HASH = 'f76f4e7f6ab967dd67598bbd032194fd5139188259d78e8a4f88221dd6b0030e';
+let adminOn = false;
+try { adminOn = localStorage.getItem('paiss-admin') === '1'; } catch (e) {}
+const isAdmin = () => adminOn;
+async function sha256Hex(t) {
+  if (!(typeof crypto !== 'undefined' && crypto.subtle)) return null;
+  const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t));
+  return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join('');
+}
+function adminMsg(text, kind) { const m = $('adminMsg'); if (m) { m.textContent = text || ''; m.style.color = kind === 'ko' ? 'var(--ko, #c0392b)' : ''; } }
+function renderAdminUi() {
+  const link = $('adminLink'); if (!link) return;
+  link.textContent = adminOn ? 'Quitter le mode admin' : 'Passer en mode admin';
+  if (adminOn) $('adminBox').hidden = true;
+  adminMsg(adminOn ? '🐞 Mode admin actif : F2 ou le bouton 🐞 pendant la partie.' : '');
+  $('dbgBtn').hidden = !adminOn;
+  if (!adminOn && !$('dbgPanel').hidden) $('dbgPanel').hidden = true;
+}
+function setAdminMode(on) {
+  adminOn = !!on;
+  try { adminOn ? localStorage.setItem('paiss-admin', '1') : localStorage.removeItem('paiss-admin'); } catch (e) {}
+  renderAdminUi();
+}
+let adminBusy = false;
+async function submitAdmin() {
+  if (adminBusy) return;
+  const code = ($('adminCode').value || '').trim().toUpperCase();
+  if (!code) return adminMsg('Saisis le code admin.', 'ko');
+  adminBusy = true; $('adminGo').disabled = true;
+  try {
+    const h = await sha256Hex(code);
+    if (h === null) return adminMsg('Mode admin indisponible : il faut ouvrir le jeu en https.', 'ko');
+    if (h !== ADMIN_HASH) { adminMsg('Code incorrect.', 'ko'); await new Promise(r => setTimeout(r, 900)); return; }
+    $('adminCode').value = ''; setAdminMode(true);
+  } finally { adminBusy = false; $('adminGo').disabled = false; }
+}
 let dbgFast = false;
 function toggleDbg(force) {
-  if (!isAdmin()) { showToast('Console de test : compte admin requis.'); return; }
+  if (!isAdmin()) { showToast('Console de test : mode admin requis.'); return; }
   const el = $('dbgPanel');
   const open = force == null ? el.hidden : !!force;
   el.hidden = !open;
@@ -3233,10 +3568,6 @@ function renderAuth(mode) {
       <h2 class="h2" style="margin-top:12px">Mon tablier</h2>
       <div class="aprons">${ap}</div>
       <p class="small muted" style="margin:6px 0 0">Les tabliers se débloquent avec le niveau du compte et s'appliquent à la prochaine partie.</p>
-      <h2 class="h2" style="margin-top:12px">Console de test</h2>
-      ${pr.admin
-        ? `<p class="small muted" style="margin:0">Mode debug actif sur ce compte.</p><div class="row"><button class="btn vis" data-act="dbg-open">🐞 Ouvrir la console</button><button class="btn" data-act="dbg-off">Désactiver</button></div>`
-        : `<p class="small muted" style="margin:0">Réservé aux tests : saisis le code de test pour activer la console.</p><div class="pwrow"><input class="field" id="aDbg" autocomplete="off" placeholder="Code de test"><button class="btn" data-act="dbg-on">Activer</button></div>`}
       <h2 class="h2" style="margin-top:12px">Mes meilleures journées</h2><div class="statlist" id="acctStats"></div>
       <div class="row"><button class="btn" data-act="m-passwd">Changer de mot de passe</button><button class="btn" data-act="m-recnew">Nouveau code de secours</button></div>
       <div class="row"><button class="btn" data-act="logout">Se déconnecter</button><button class="btn" data-act="m-delete"><span class="danger">Supprimer mon compte</span></button></div>
@@ -3269,16 +3600,6 @@ function authClick(e) {
   else if (a === 'm-recnew') renderAuth('recnew');
   else if (a === 'm-delete') renderAuth('delete');
   else if (a === 'm-done') { closeAuth(); showToast('Compte prêt. Bonne partie !'); }
-  else if (a === 'dbg-open') { closeAuth(); toggleDbg(true); }
-  else if (a === 'dbg-off') { LB.setAdmin(acct.profile.username, false); renderAuth('account'); $('dbgBtn').hidden = true; $('dbgPanel').hidden = true; authMsg('Console de test désactivée.', 'ok'); }
-  else if (a === 'dbg-on') {
-    const typed = ($('aDbg') || {}).value || '';
-    if (typed.trim().toUpperCase() !== ADMIN_CODE) return authMsg('Code de test incorrect.', 'ko');
-    LB.setAdmin(acct.profile.username, true);
-    renderAuth('account');
-    $('dbgBtn').hidden = !isAdmin();
-    authMsg('Console de test activée : appuie sur F2 ou sur 🐞.', 'ok');
-  }
   else if (a === 'showpw') { const i = $(b.dataset.for); if (i) i.type = i.type === 'password' ? 'text' : 'password'; }
   else if (a === 'logout') doLogout();
   else if (a === 'delete') doDelete();
@@ -3505,7 +3826,6 @@ function phaseChanged(ph, prev) {
   $('room').hidden = ph !== 'lobby';
   $('summary').hidden = ph !== 'summary';
   $('hud').hidden = ph !== 'play';
-  $('botManageBtn').style.display = (ph === 'play' && net.code === 'SOLO') ? 'inline-block' : 'none';
   $('daybar').hidden = ph !== 'play';
   if (ph === 'play') {
     const idx = Math.max(0, view.players.findIndex(p => p.id === net.myId));
@@ -3518,6 +3838,230 @@ function phaseChanged(ph, prev) {
   if (ph === 'summary') { closeModal(true); if (prev === 'play') { S(view.last && view.last.success ? 'win' : 'fail'); onDayEnd(view.last); } }
   lastActKey = ''; renderAction();
 }
+
+
+/* =================== TUTO : une partie guidée, sans classement ni sauvegarde ===================
+   Même moteur que le vrai jeu (mêmes postes, mêmes minijeux), mais : pas de chrono, pas d'encadrant,
+   pas d'imprévu, donneur et client patients, aucune sauvegarde, aucun score, aucune XP.
+   Chaque étape attend qu'une action ait eu lieu, guide avec une flèche, et recrée ce qui manque
+   si le joueur se trompe ou saute une étape : le tuto ne peut pas rester bloqué. */
+const TUTO_HINTS = {
+  apport: '🎓 <b>Contrôle réception.</b> Pour chaque objet : scanne-le (Espace ou bouton), puis <b>✅ Accepte</b> ce qui est autorisé et <b>⛔ Refuse</b> ce qui est dangereux ou interdit (armes, médicaments, pétards, contrefaçons…).',
+  vaisselle: '🎓 Chaque poste a sa propre petite épreuve : lis la consigne juste en dessous. Ici, une erreur ne coûte rien.',
+  etiquette: '🎓 Retrouve la catégorie de l\'objet dans le barème, puis choisis le prix qui rentre dans sa fourchette.',
+  caisse: '🎓 Additionne le ticket, calcule la monnaie (somme donnée − total), clique les pièces et billets pour la rendre, puis valide.',
+};
+const tutoItem = () => ({ e: '🍽️', n: 'Service d\'assiettes', cat: 'vaisselle', heavy: false, price: 3 });
+function tutoWave() {
+  const ok = LEGAL.find(o => o.dest === 'vaisselle' && o.e === '🍽️');
+  return shuffle([{ ...ok }, { ...pick(ILLEGAL) }]);
+}
+const tutoEv = () => ({ open: {}, done: {}, delivered: {}, pickup: 0, wrong: 0 });
+const tutoSt = id => STATIONS.find(s => s.id === id);
+const tutoMeP = () => G && G.players.get(net.myId);
+const tutoCarrying = () => !!(G && G.colis.some(c => c.carriers.includes(net.myId)));
+const tutoFloor = dest => G.colis.find(c => !c.carriers.length && (!dest || c.dest === dest));
+const tutoOn = station => { const p = tutoMeP(); return !!(p && p.station === station); };
+function tutoDonor() {
+  if (G.donors.some(d => d.state === 'wait' || d.state === 'serving')) return;
+  G.donors.push({ id: G.npcId++, x: 1090, y: -30, state: 'wait', pat: 1e6, patMax: 1e6, face: pick(FACES), color: pick(NPC_COLORS) });
+  fxAll(1090, 30, '', 'bell');
+}
+function tutoColis(dest, slots) { spawnColis(tutoItem(), dest, slots); }
+const TUTO_STEPS = [
+  { id: 'intro', info: true, title: 'Bienvenue à la ressourcerie !',
+    text: 'Ici, tu reçois des dons, tu les trie ou les répares, tu les mets en rayon, puis tu les vends. Ce tuto te fait traiter un objet du début à la fin. Pas de chrono, pas d\'encadrant, et rien n\'est enregistré.' },
+  { id: 'move', title: 'Se déplacer',
+    text: 'Avance avec ZQSD ou les flèches du clavier (sur téléphone : glisse ton doigt sur l\'écran). Fais quelques pas dans la salle.',
+    enter() { G.tuto.sx = me.x; G.tuto.sy = me.y; },
+    check: () => Math.hypot(me.x - G.tuto.sx, me.y - G.tuto.sy) > 180 },
+  { id: 'apport', title: 'Accueillir un donneur',
+    text: 'Un donneur vient d\'arriver tout en haut. Va jusqu\'au poste « Accueillir un donneur » (suis la flèche orange) et appuie sur E, ou sur le bouton d\'action en bas de l\'écran.',
+    target: () => tutoSt('apport'), enter() { tutoDonor(); }, ensure() { tutoDonor(); },
+    check: () => G.tuto.ev.done.apport },
+  { id: 'pickup', title: 'Prendre un colis',
+    text: 'Ce que tu acceptes devient un colis posé près de l\'Accueil. Approche-toi et appuie sur E pour le prendre. La pastille de couleur sur le colis te dit dans quel bac il doit aller.',
+    target: () => { const c = tutoFloor('vaisselle'); return c ? { x: c.x, y: c.y } : null; },
+    ensure() { if (!G.colis.some(c => c.dest === 'vaisselle') && !G.stock.vaisselle.length && !tutoOn('vaisselle')) tutoColis('vaisselle', APPORT_SLOTS); },
+    enter() { G.donors = []; this.ensure(); },                 // un donneur laissé de côté (étape sautée) repart
+    check: () => G.tuto.ev.pickup > 0 || tutoCarrying() },
+  { id: 'deliver', title: 'Le déposer dans le bon bac',
+    text: 'Porte le colis jusqu\'au bac « Vaisselle » (à droite) et appuie sur E pour le poser. Un mauvais bac compte comme une erreur et casse ton combo.',
+    target: () => { if (tutoCarrying()) return tutoSt('vaisselle'); const c = tutoFloor(); return c ? { x: c.x, y: c.y } : tutoSt('vaisselle'); },
+    ensure() { if (!G.colis.some(c => c.dest === 'vaisselle') && !G.stock.vaisselle.length && !tutoOn('vaisselle')) tutoColis('vaisselle', APPORT_SLOTS); },
+    check: () => G.tuto.ev.delivered.vaisselle },
+  { id: 'station', title: 'Traiter l\'objet au poste',
+    text: 'Reste devant le poste « Trier la vaisselle » et appuie sur E : chaque pôle a sa petite épreuve. Réussis-la pour faire avancer l\'objet.',
+    target: () => tutoSt('vaisselle'),
+    ensure() {
+      if (!G.stock.vaisselle.length && !tutoOn('vaisselle')) { G.colis = G.colis.filter(c => c.dest !== 'vaisselle'); G.stock.vaisselle.push(tutoItem()); }
+    },
+    enter() { this.ensure(); },
+    check: () => G.tuto.ev.done.vaisselle },
+  { id: 'reserve', title: 'Direction la Réserve',
+    text: 'L\'objet traité ressort du poste sous forme de colis. Prends-le et porte-le dans le bac « Réserve », au centre de la salle, en bas.',
+    target: () => { if (tutoCarrying()) return tutoSt('etiquette'); const c = tutoFloor(); return c ? { x: c.x, y: c.y } : tutoSt('etiquette'); },
+    ensure() { if (!G.colis.some(c => c.dest === 'reserve') && !G.stock.reserve.length && !tutoOn('etiquette')) tutoColis('reserve', around(tutoSt('vaisselle'))); },
+    enter() { this.ensure(); },
+    check: () => G.tuto.ev.delivered.reserve },
+  { id: 'label', title: 'Étiqueter le prix',
+    text: 'En Réserve, on met un prix sur chaque objet. Appuie sur E au poste « Étiqueter les prix » (juste à côté du bac).',
+    target: () => tutoSt('etiquette'),
+    ensure() {
+      if (!G.stock.reserve.length && !tutoOn('etiquette')) { G.colis = G.colis.filter(c => c.dest !== 'reserve'); G.stock.reserve.push(tutoItem()); }
+    },
+    enter() { this.ensure(); },
+    check: () => G.tuto.ev.done.etiquette },
+  { id: 'shelf', title: 'Mettre en rayon',
+    text: 'L\'objet étiqueté est prêt pour la boutique. Prends le colis et porte-le au bac « Mettre en rayon », tout en bas, dans le magasin.',
+    target: () => { if (tutoCarrying()) return tutoSt('rayon'); const c = tutoFloor(); return c ? { x: c.x, y: c.y } : tutoSt('rayon'); },
+    ensure() { if (!G.colis.some(c => c.dest === 'magasin') && !G.shelved.length && !G.customers.length) tutoColis('magasin', RESERVE_SLOTS); },
+    enter() { this.ensure(); },
+    check: () => G.tuto.ev.delivered.magasin },
+  { id: 'cashier', title: 'Encaisser un client',
+    text: 'Un client entre dans la boutique et choisit ton objet. Quand il fait la queue, va à la caisse (en bas à droite) et appuie sur E : rends-lui la bonne monnaie.',
+    target: () => tutoSt('caisse'),
+    ensure() { if (!G.customers.length) { if (!G.shelved.length) G.shelved.push(tutoItem()); G.nextCustomer = Math.min(G.nextCustomer, G.t); } },
+    enter() { G.colis = G.colis.filter(c => c.dest !== 'magasin'); G.nextCustomer = G.t; this.ensure(); },   // pas de colis oublié si l'étape précédente a été sautée
+    check: () => G.tuto.ev.done.caisse },
+  { id: 'hud', info: true, title: 'Lire l\'écran',
+    text: 'En haut : le jour, l\'horloge (une vraie journée dure 5 minutes) et ta barre de recettes à atteindre. Le combo monte quand tu enchaînes sans erreur et multiplie tes gains. À gauche, « À faire » résume ce qui t\'attend dans chaque pôle.' },
+  { id: 'events', info: true, title: 'Les imprévus',
+    text: 'Pendant une vraie journée, des collègues te sollicitent : Yanis s\'endort (DEEE bloqué), Océane lance un débat (Jouets bloqués), Quentin fait une RQ (à soulager vite, sinon la journée est perdue), Robert vole un colis (à rattraper).' },
+  { id: 'enc', info: true, title: 'Les encadrants',
+    text: 'Les encadrants en gilet orange font des rondes. Si tu cours (Maj), lances un colis (F) ou bâcles une tâche pendant qu\'ils te voient (leur cône jaune), tu perds de l\'argent. Mieux vaut attendre qu\'ils s\'éloignent.' },
+  { id: 'team', info: true, title: 'Seul ou à plusieurs',
+    text: 'Crée une partie pour jouer jusqu\'à 4 avec un code à 4 lettres : les gros objets se portent à deux. En solo, des bots t\'aident. L\'argent gagné paie des améliorations entre deux jours. Connecté à un compte, tes scores vont au classement.' },
+  { id: 'end', info: true, end: true, title: 'Tuto terminé, bravo !',
+    text: 'Tu sais tout faire : accueillir, porter, traiter, étiqueter, mettre en rayon et encaisser. Prêt pour une vraie journée ?' },
+];
+function startTuto() {
+  Object.assign(net, { peer: null, isHost: true, myId: 'solo', code: 'TUTO' });
+  hostInit(isLogged() ? acct.profile.username : 'Toi');
+  Object.assign(G, { day: 1, bank: 0, upg: defaultUpg(), best: { day: 1, revenue: 0 }, shelved: [] });
+  G.tuto = { i: 0, ev: tutoEv(), tick: 0, note: '', noteUntil: 0, sx: 0, sy: 0 };
+  startDay();
+  Object.assign(G, { enc: [], events: [], nextEvent: 1e9, nextDonor: 1e9, nextCustomer: 1e9, ch: [], ghost: 0,
+    deliveries: [], dayLen: 1e6, timeLeft: 1e6, bots: [], donors: [], goal: 30 });
+  hostTick();
+  tutoEnter();
+  tutoRender();
+}
+function tutoEnter() {
+  const st = TUTO_STEPS[G.tuto.i];
+  G.tuto.ev = tutoEv(); G.tuto.note = ''; G.tuto.tick = 0;
+  if (st && st.enter) st.enter();
+}
+function tutoNext() {
+  const T = G.tuto; if (!T || T.i >= TUTO_STEPS.length - 1) return;
+  T.i++; tutoEnter(); tutoRender(); S('ok');
+}
+function tutoEvent(type, a) { if (G && G.tuto) tutoOnEvent(type, a); }
+function tutoOnEvent(type, a) {
+  const e = G.tuto.ev;
+  if (type === 'open') e.open[a] = true;
+  else if (type === 'done') e.done[a] = true;
+  else if (type === 'pickup') e.pickup++;
+  else if (type === 'delivered') e.delivered[a.dest] = true;
+  else if (type === 'wrong') {
+    e.wrong++;
+    G.tuto.note = 'Mauvais bac ! Regarde la pastille de couleur du colis : c\'est le nom du bon bac. Reprends-le (E) et réessaie.';
+    G.tuto.noteUntil = performance.now() + 7000; tutoRender();
+  }
+}
+function tutoUpdate(dt) {
+  const T = G.tuto; if (!T) return;
+  G.donors.forEach(d => { d.pat = d.patMax; });                      // personne ne s'impatiente pendant le tuto
+  G.customers.forEach(c => { if (c.state === 'queue') c.pat = c.patMax; });
+  const st = TUTO_STEPS[T.i];
+  if (st && !st.info) {
+    if (st.check && st.check()) { tutoNext(); tutoShow(); return; }
+    T.tick += dt;
+    if (T.tick > 0.4) { T.tick = 0; if (st.ensure) st.ensure(); }
+  }
+  if (T.note && performance.now() > T.noteUntil) { T.note = ''; tutoRender(); }
+  tutoShow();
+}
+function tutoShow() {
+  const T = G && G.tuto, box = $('tutoBox');
+  const show = !!T && G.phase === 'play' && !modalOpen;
+  if (box.hidden !== !show) {
+    box.hidden = !show;
+    document.documentElement.style.setProperty('--tuto-h', show ? box.offsetHeight + 'px' : '0px');
+  }
+  document.body.classList.toggle('tuto-on', !!T && G.phase === 'play');
+}
+function tutoRender() {
+  const T = G && G.tuto; if (!T) return;
+  const st = TUTO_STEPS[T.i], n = TUTO_STEPS.length;
+  $('tutoStep').textContent = st.end ? 'Terminé' : 'Étape ' + (T.i + 1) + ' sur ' + (n - 1);
+  $('tutoProg').style.width = Math.round(T.i / (n - 1) * 100) + '%';
+  $('tutoTitle').textContent = st.title;
+  $('tutoText').textContent = st.text;
+  $('tutoNote').hidden = !T.note; $('tutoNote').textContent = T.note || '';
+  $('tutoNext').hidden = !st.info;
+  $('tutoNext').textContent = st.end ? 'Retour à l\'accueil' : 'Suivant';
+  $('tutoSkip').hidden = false;
+  $('tutoSkip').textContent = st.end ? 'Refaire le tuto' : 'Passer l\'étape';
+  $('tutoSkip').hidden = st.info && !st.end;
+  $('tutoQuit').hidden = !!st.end;
+  tutoShow();
+  if (!$('tutoBox').hidden) document.documentElement.style.setProperty('--tuto-h', $('tutoBox').offsetHeight + 'px');
+}
+function exitTuto() {
+  closeModal(true);
+  clearInterval(hostTimer); hostTimer = 0; G = null;
+  $('tutoBox').hidden = true; document.body.classList.remove('tuto-on');
+  document.documentElement.style.setProperty('--tuto-h', '0px');
+  $('touchBtns').hidden = true; $('alert').hidden = true; $('events').innerHTML = '';
+  lostConnection('');
+}
+function tutoModalHint(stId) {
+  const old = $('tutoHint'); if (old) old.remove();
+  if (!(G && G.tuto) || !TUTO_HINTS[stId]) return;
+  const d = document.createElement('div'); d.id = 'tutoHint'; d.className = 'tuto-hint'; d.innerHTML = TUTO_HINTS[stId];
+  $('mBody').insertAdjacentElement('beforebegin', d);
+}
+function tutoTarget() {
+  if (!G || !G.tuto) return null;
+  const st = TUTO_STEPS[G.tuto.i];
+  return st && st.target ? st.target() : null;
+}
+/* Anneau et flèche sur la cible ; si elle est hors de l'écran, une flèche sur le bord indique la direction */
+function drawTutoMarker(now) {
+  const tg = tutoTarget(); if (!tg) return;
+  const t = now / 1000, sx = (tg.x - camX) * scale, sy = (tg.y - camY) * scale;
+  const top = insTop, bot = ch - insBot;
+  const on = sx > 28 && sx < cw - 28 && sy > top + 28 && sy < bot - 28;
+  ctx.save();
+  if (on) {
+    ctx.strokeStyle = '#ff7a00'; ctx.lineWidth = 5; ctx.globalAlpha = 0.7 + 0.3 * Math.sin(t * 5);
+    ctx.beginPath(); ctx.arc(tg.x, tg.y, 34 + Math.sin(t * 3) * 4, 0, 7); ctx.stroke(); ctx.globalAlpha = 1;
+    /* trop près du haut de l'écran (la barre du haut la cacherait) : la flèche passe sous la cible, pointée vers le haut */
+    const below = sy - 70 * scale < top + 6, bob = Math.sin(t * 4) * 6;
+    ctx.fillStyle = '#ff7a00'; ctx.strokeStyle = '#fff'; ctx.lineWidth = 3;
+    ctx.beginPath();
+    if (!below) { const ay = tg.y - 62 + bob; ctx.moveTo(tg.x, ay + 24); ctx.lineTo(tg.x - 16, ay); ctx.lineTo(tg.x + 16, ay); }
+    else { const ay = tg.y + 66 - bob; ctx.moveTo(tg.x, ay - 24); ctx.lineTo(tg.x - 16, ay); ctx.lineTo(tg.x + 16, ay); }
+    ctx.closePath(); ctx.stroke(); ctx.fill();
+  } else {
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const cx = cw / 2, cy = (top + bot) / 2, dx = sx - cx, dy = sy - cy;
+    const k = Math.min((cw / 2 - 30) / Math.max(1, Math.abs(dx)), ((bot - top) / 2 - 30) / Math.max(1, Math.abs(dy)));
+    const px = cx + dx * k, py = cy + dy * k, a = Math.atan2(dy, dx), b = Math.sin(t * 5) * 3;
+    ctx.translate(px, py); ctx.rotate(a);
+    ctx.fillStyle = '#ff7a00'; ctx.strokeStyle = '#fff'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(20 + b, 0); ctx.lineTo(-10 + b, -15); ctx.lineTo(-10 + b, 15); ctx.closePath(); ctx.stroke(); ctx.fill();
+  }
+  ctx.restore();
+}
+$('tutoBtn').addEventListener('click', startTuto);
+$('tutoQuit').addEventListener('click', exitTuto);
+$('tutoNext').addEventListener('click', e => { e.currentTarget.blur(); if (!G || !G.tuto) return; if (TUTO_STEPS[G.tuto.i].end) exitTuto(); else tutoNext(); });
+$('tutoSkip').addEventListener('click', e => {
+  e.currentTarget.blur(); if (!G || !G.tuto) return;
+  if (TUTO_STEPS[G.tuto.i].end) { exitTuto(); startTuto(); } else tutoNext();
+});
 
 /* =================== CANVAS =================== */
 const stage = $('stage'), canvas = $('game'), ctx = canvas.getContext('2d');
@@ -3544,6 +4088,8 @@ function measureInsets() {
   insTopT = top ? top + 8 : 0;
   const bu = $('bottomUI');
   insBotT = getComputedStyle(bu).display !== 'contents' ? Math.max(0, sr.bottom - bu.getBoundingClientRect().top) + 8 : 76;
+  const tb = $('tutoBox');                                   // le panneau du tuto réserve aussi sa place en bas
+  if (tb && !tb.hidden && tb.offsetHeight) insBotT = Math.max(insBotT, sr.bottom - tb.getBoundingClientRect().top + 8);
 }
 function camYFor(py, chh, sc, it, ib) {
   const bh = (chh - it - ib) / sc;
@@ -3590,6 +4136,7 @@ addEventListener('keydown', e => {
   if (e.key === 'Escape' && (!$('authModal').hidden || !$('lbModal').hidden)) { if (!$('lbModal').hidden) closeLb(); else closeAuth(); return; }
   if (e.target && e.target.tagName === 'INPUT') {
     if (e.key === 'Enter' && e.target.id === 'codeIn') joinGame();
+    else if (e.key === 'Enter' && e.target.id === 'adminCode') submitAdmin();
     return;
   }
   if (modalOpen) {
@@ -3624,6 +4171,8 @@ addEventListener('keyup', e => { keys.delete(e.key.toLowerCase()); if (modalOpen
 addEventListener('blur', () => keys.clear());
 
 function localPos(e) { const r = canvas.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
+canvas.addEventListener('contextmenu', openBotPoleMenu);
+addEventListener('pointerdown', e => { if(!$('botPoleMenu')?.classList.contains('hidden') && !e.target.closest('#botPoleMenu')) closeBotPoleMenu(); });
 canvas.addEventListener('pointerdown', e => {
   if ((!view || view.phase !== 'play') && !zombieMode || modalOpen) return;
   const p = localPos(e);
@@ -3641,22 +4190,16 @@ const joyEnd = e => { if (e && e.pointerId !== joy.id) return; joy.active = fals
 canvas.addEventListener('pointerup', joyEnd);
 canvas.addEventListener('pointercancel', joyEnd);
 
-function openBotManager(){
-  if(!G || net.code!=='SOLO' || !G.bots.length){ showToast('La gestion des bots est disponible en mode solo.'); return; }
-  renderBotManager(); $('botManager').hidden=false;
+function poleAtWorld(x,y){return poleZones.find(z=>x>=z.x&&x<=z.x+z.w&&y>=z.y&&y<=z.y+z.h)||null;}
+function closeBotPoleMenu(){const m=$('botPoleMenu');if(m)m.classList.add('hidden');}
+function openBotPoleMenu(e){
+  if(!view||view.phase!=='play'||net.code!=='SOLO'||modalOpen||zombieMode)return;
+  e.preventDefault();e.stopPropagation();const p=localPos(e);const wx=camX+p.x/scale,wy=camY+p.y/scale,z=poleAtWorld(wx,wy);if(!z){closeBotPoleMenu();return;}
+  const m=$('botPoleMenu');if(!m)return;
+  m.innerHTML='<div class="bpm-title"><span class="emo">🤖</span><span>Attribuer au pôle '+esc(POLES[z.k].label)+'</span><span class="grow"></span></div><div class="bpm-sub">Choisis le bot qui travaillera ici.</div>'+(G.bots||[]).map(b=>{const c=normalizeBotConfig(b.config),active=c.assignedPole===z.k,other=c.assignedPole&&c.assignedPole!==z.k;return '<button class="bpm-item" data-bot-pole="'+esc(b.id)+'" role="menuitem"><span class="bpm-dot" style="background:'+b.color+'"></span><span>'+esc(b.name)+'</span><span class="grow"></span><span class="bpm-check">'+(active?'✓':other?'↗':'')+'</span></button>';}).join('')+'<button class="bpm-item bpm-unassign" data-bot-pole="none" role="menuitem"><span>↺</span><span>Retirer les affectations à ce pôle</span></button>';
+  let left=e.clientX+8,top=e.clientY+8;m.classList.remove('hidden');m.style.visibility='hidden';const mw=m.offsetWidth,mh=m.offsetHeight;left=Math.min(left,innerWidth-mw-8);top=Math.min(top,innerHeight-mh-8);left=Math.max(8,left);top=Math.max(8,top);m.style.left=left+'px';m.style.top=top+'px';m.style.visibility='visible';
+  m.querySelectorAll('[data-bot-pole]').forEach(btn=>btn.onclick=()=>{const id=btn.dataset.botPole;if(id==='none'){for(const b of G.bots)if(normalizeBotConfig(b.config).assignedPole===z.k)botUnassignPole(b);}else botAssignPole(botById(id),z.k);renderBotManager();closeBotPoleMenu();});
 }
-function closeBotManager(){ $('botManager').hidden=true; }
-function renderBotManager(){
-  const el=$('botManagerBody'); if(!el) return;
-  el.innerHTML=(G.bots||[]).map(b=>{ const c=normalizeBotConfig(b.config);
-    return `<div class="botcard"><div class="bothead"><span class="botdot" style="background:${b.color}"></span><strong>${esc(b.name)}</strong><span class="grow"></span><span class="botmini">${b.taskLabel||'En attente'}</span></div>
-      <div class="botfield"><label>Poste principal</label><select data-bot="${b.id}" data-kind="primary"><option value="auto">🤖 Automatique</option>${BOT_TASKS.map(x=>`<option value="${x}" ${c.primary===x?'selected':''}>${BOT_TASK_LABELS[x]}</option>`).join('')}</select></div>
-      <div class="botfield"><label>Tâches autorisées</label><div class="botchecks">${BOT_TASKS.map(x=>`<label class="botcheck"><input type="checkbox" data-bot="${b.id}" data-kind="task" data-key="${x}" ${c.tasks[x]?'checked':''}>${BOT_TASK_LABELS[x]}</label>`).join('')}</div></div>
-      <div class="botfield"><label>Colis qu'il peut porter</label><div class="botchecks">${BOT_CARRY_TYPES.map(x=>`<label class="botcheck"><input type="checkbox" data-bot="${b.id}" data-kind="carry" data-key="${x}" ${c.carry[x]?'checked':''}>${BOT_CARRY_LABELS[x]}</label>`).join('')}<label class="botcheck"><input type="checkbox" data-bot="${b.id}" data-kind="heavy" ${c.carryHeavy?'checked':''}>Lourd</label></div></div>
-      <div class="botstatus">État : <b>${b.taskLabel||'En attente'}</b>${b.carry?' · porte un colis':''}</div></div>`; }).join('');
-  el.querySelectorAll('input,select').forEach(x=>x.addEventListener('change',()=>{ const b=botById(x.dataset.bot); if(!b)return; const c=normalizeBotConfig(b.config); if(x.dataset.kind==='primary') c.primary=x.value; else if(x.dataset.kind==='task') c.tasks[x.dataset.key]=x.checked; else if(x.dataset.kind==='carry') c.carry[x.dataset.key]=x.checked; else if(x.dataset.kind==='heavy') c.carryHeavy=x.checked; b.config=c; botConfigSave(); if(b.task && b.station && !botAllowsTask(b,b.station)){ if(G.locks[b.station]===b.id) delete G.locks[b.station]; restoreRes(b.res); botClearTask(b); } renderBotManager(); }));
-}
-
 $('hudToggle').addEventListener('click', () => $('hud').classList.toggle('collapsed'));
 $('mClose').addEventListener('click', () => closeModal());
 $('createBtn').addEventListener('click', () => createGame());
@@ -3901,7 +4444,7 @@ function renderHud() {
   $('hudCode').textContent = view.code;
   $('errs').textContent = '✖ ' + view.errors;
   $('dayLbl').textContent = 'Jour ' + view.day;
-  $('clock').textContent = fmt(view.timeLeft);
+  $('clock').textContent = view.tuto ? '🎓 Tuto' : fmt(view.timeLeft);
   $('clock').classList.toggle('hurry', view.timeLeft < 30);
   const pct = view.goal ? Math.min(100, view.revenue / view.goal * 100) : 0;
   $('gfill').style.width = pct + '%';
@@ -3910,7 +4453,7 @@ function renderHud() {
   // Rythme de la journée : une seule pastille, qui change de temps en temps
   const playing = view.phase === 'play';
   const P = PACING[view.pace] || PACING[0];
-  $('pace').hidden = !playing;
+  $('pace').hidden = !playing || !!view.tuto;
   $('pace').textContent = P.icon + ' ' + P.name + (P.mult > 1 ? ' ×' + P.mult : '');
   $('pace').classList.toggle('hot', P.mult > 1);
   // Rythme du record : un écart en direct, sans nouvelle barre
@@ -4061,7 +4604,7 @@ function frame(now) {
       updateZombie(dt);
     } else update(dt);
   }
-  if (net.isHost && G) hostFrame(now, dt);
+  if (net.isHost && G) { try { hostFrame(now, dt); } catch (err) { if (hostFrame.lastErr !== err.message) { hostFrame.lastErr = err.message; console.error('hostFrame :', err); } } }
   if (view) {
     lerpMap(rp, view.players.filter(p => p.id !== net.myId), '', dt);
     lerpMap(npcR, view.donors, 'd', dt);
@@ -4140,6 +4683,7 @@ function draw(t, now) {
     drawEncadrantCones();
     view.colis.filter(c => !c.carriers.length).forEach(c => drawColis(c, c.x, c.y, false));
     drawStations(t);
+    drawAssignedBotHeads();
     drawCoworkers(t);
     drawEncadrants(t);
     view.donors.forEach(d => { const r = npcR.get('d' + d.id); if (r) drawNPC(r.x, r.y, Math.PI / 2, 0, d.c, d.f, d.s === 'wait' ? d.p : null, null); });
@@ -4154,6 +4698,7 @@ function draw(t, now) {
     view.colis.filter(c => c.carriers.length).forEach(c => { const p = colisPos(c); drawColis(c, p.x, p.y - 26, true); });
     drawFlights(now);
     drawFx(now);
+    drawTutoMarker(now);
     drawMinimap();
     drawGuide();
   }
@@ -4330,6 +4875,24 @@ function drawBody(x, y, dir, walk, color) {
 }
 function drawPlayer(x,y,dir,walk,color,name,avatar){
  avatar=validAvatar(avatar)?avatar:{...AVATAR_DEFAULT,outfit:color};const {fx,fy,px,py}=drawBody(x,y,dir,walk,avatar.outfit);ctx.strokeStyle='#e9eef0';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(x+px*11-fx*3,y+py*11-fy*3);ctx.lineTo(x-px*11-fx*3,y-py*11-fy*3);ctx.stroke();const hx=x+fx*2,hy=y+fy*2;ctx.fillStyle=avatar.skin;ctx.beginPath();ctx.arc(hx,hy,8,0,7);ctx.fill();ctx.fillStyle=avatar.hair;if(avatar.hairStyle==='long'){ctx.beginPath();ctx.arc(hx,hy-2,8.5,dir+Math.PI/2,dir+Math.PI*1.5);ctx.fill();ctx.fillRect(hx-8,hy-1,5,12);ctx.fillRect(hx+3,hy-1,5,12)}else{ctx.beginPath();ctx.arc(hx,hy,8.5,dir+Math.PI/2,dir+Math.PI*1.5);ctx.closePath();ctx.fill()}if(avatar.hairStyle==='casquette'||avatar.accessory==='cap'){ctx.fillStyle=avatar.accessory==='cap'?'#303840':avatar.hair;ctx.beginPath();ctx.arc(hx,hy-4,9,Math.PI,Math.PI*2);ctx.fill();ctx.fillRect(hx-9,hy-5,18,3)}if(avatar.accessory==='beanie'){ctx.fillStyle='#7d5fc4';ctx.beginPath();ctx.arc(hx,hy-3,9,Math.PI,Math.PI*2);ctx.fill()}if(avatar.accessory==='glasses'){ctx.strokeStyle='#20252a';ctx.lineWidth=1.5;ctx.strokeRect(hx-7,hy-2,5,4);ctx.strokeRect(hx+2,hy-2,5,4);ctx.beginPath();ctx.moveTo(hx-2,hy);ctx.lineTo(hx+2,hy);ctx.stroke()}if(name){ctx.font='700 12px '+FONT;const w=ctx.measureText(name).width+10;ctx.fillStyle='rgba(0,0,0,.55)';rr(x-w/2,y+18,w,16,8);ctx.fill();text(name,x,y+26,12,'#fff',700)}}
+function drawAssignedBotHeads(){
+  if(!view || !view.bots) return;
+  for(const b of view.bots){
+    const pole=b.assignedPole;
+    if(!pole) continue;
+    const p=botPoleHeadPos(pole); if(!p) continue;
+    const pulse=1+Math.sin(performance.now()/260+b.id.length)*.06;
+    ctx.save(); ctx.translate(p.x,p.y); ctx.scale(pulse,pulse);
+    ctx.shadowColor='rgba(0,0,0,.28)'; ctx.shadowBlur=8;
+    ctx.fillStyle=b.color; ctx.beginPath(); ctx.arc(0,0,15,0,Math.PI*2); ctx.fill();
+    ctx.shadowBlur=0; ctx.strokeStyle='#fff'; ctx.lineWidth=2; ctx.stroke();
+    emoji('🤖',0,0,19);
+    ctx.font='800 9px '+FONT; ctx.textAlign='center';
+    ctx.fillStyle='rgba(0,0,0,.68)'; rr(-22,17,44,14,7); ctx.fill();
+    text(b.name.replace(/^Bot\s*/i,''),0,24,9,'#fff',800);
+    ctx.restore(); ctx.textAlign='left';
+  }
+}
 function drawBotTask(b) {
   if (!b.task) return;
   const pct = clamp(b.taskProgress == null ? 0 : b.taskProgress, 0, 1);
@@ -4572,6 +5135,7 @@ function openStation(stId, ctxData) {
     poleContent.classList.add('pole-window-content');
   }
   lastActKey = '';
+  tutoModalHint(stId);
   $('mCheat').hidden = !BACLE_OK.includes(stId);
   $('cheatBtn').onclick = () => startBacle(stId, sess);
   updateRadar();
@@ -4608,6 +5172,7 @@ function closeModal(silent) {
   if (cleanup) cleanup();
   cleanup = null; modalKey = null; modalKeyUp = null; modalUpdate = null;
   $('modal').hidden = true; modalOpen = false; lastActKey = ''; $('mCheat').hidden = true;
+  { const th = $('tutoHint'); if (th) th.remove(); }
   $('card').classList.remove('pole-window-animated');
   $('mBody').classList.remove('pole-window-content');
 }
@@ -5875,12 +6440,19 @@ window.__paiss = {
   route: () => route(),
   put: (x, y, a) => { if (me.veh) { me.veh.x = x; me.veh.y = y; me.veh.a = a; me.veh.v = 0; me.veh.st = 0; } },
 };
+$('adminLink').addEventListener('click', () => {
+  if (adminOn) { setAdminMode(false); return; }
+  const box = $('adminBox'); box.hidden = !box.hidden; adminMsg('');
+  if (!box.hidden) $('adminCode').focus();
+});
+$('adminGo').addEventListener('click', submitAdmin);
 initAccounts();
+renderAdminUi();
 requestAnimationFrame(frame);
 })();
 </script>
 
-<div id="game-version" aria-label="Version du jeu">(1.5.2)</div>
+<div id="game-version" aria-label="Version du jeu">(1.6.0)</div>
 <style>
 #game-version {
   position: fixed;
