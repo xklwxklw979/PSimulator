@@ -8,38 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js">
-/* === Mini-jeu câbles ordinateur : mélange à chaque partie === */
-function shuffleCables(arr) {
-  // Nouveau mélange à chaque lancement du mini-jeu.
-  if (typeof cables !== 'undefined' && typeof ports !== 'undefined') {
-    const mixed = randomizedComputerCables(cables, ports);
-    cables = mixed.cables;
-    ports = mixed.ports;
-  }
-
-  const a = arr.slice();
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
-
-function randomizedComputerCables(cables, ports) {
-  let shuffledCables = shuffleCables(cables);
-  let shuffledPorts = shuffleCables(ports);
-  // Évite exceptionnellement de redonner exactement le même ordre.
-  if (cables.length > 1 && shuffledCables.every((v, i) => v === cables[i])) {
-    [shuffledCables[0], shuffledCables[1]] = [shuffledCables[1], shuffledCables[0]];
-  }
-  if (ports.length > 1 && shuffledPorts.every((v, i) => v === ports[i])) {
-    [shuffledPorts[0], shuffledPorts[1]] = [shuffledPorts[1], shuffledPorts[0]];
-  }
-  return { cables: shuffledCables, ports: shuffledPorts };
-}
-
-</script>
+<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <style>
 *{box-sizing:border-box}
 :root{
@@ -640,7 +609,7 @@ label.lbl{display:block;font-weight:700;margin:12px 0 6px;font-size:14px}
 <script>
 (() => {
 'use strict';
-const VERSION = 11;
+const VERSION = 12;
 const EMO = '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
 const FONT = '"Bricolage Grotesque",system-ui,sans-serif';
 const $ = id => document.getElementById(id);
@@ -1391,6 +1360,8 @@ function startSolo() {
   const name = getName(); if (!name) return;
   Object.assign(net, { peer: null, isHost: true, myId: 'solo', code: 'SOLO' });
   hostInit(name);
+  G.bots = makeSoloBots();
+  hostTick();
 }
 function joinGame() {
   const name = getName(); if (!name || !peerAvailable()) return;
@@ -1442,6 +1413,7 @@ function newState(save) {
     pace: 0, collecte: false, flash: null, insp: 0, rep: 60, donGood: 0, bacleOk: 0, ghost: 0, ch: [],
     paused: false, blind: false, dbgRank: false, dbgUsed: false, chForced: false,
     deliveries: [], trip: null, gate: 0, gateT: 0,
+    bots: [], botTick: 0,
     veh: { x: DOCK.x, y: DOCK.y, a: DOCK.a, v: 0, dmg: 0, loaded: false, driver: null },
     dayLen: 300, t: 0, timeLeft: 300, nextDonor: 0, nextCustomer: 0,
     locks: {}, repairMap: null, last: null, events: [], evId: 1, nextEvent: 0, evOk: 0, evMiss: 0, enc: [], strikes: 0, teamStable: true, runId: '', runN: 1,
@@ -1495,6 +1467,52 @@ function addPlayer(id, name, want) {
   if (G.phase === 'play') G.teamStable = false;
   return p;
 }
+function makeSoloBots() {
+  if (net.code !== 'SOLO') return [];
+  return [
+    { id: 'bot-1', name: 'Bot Lina', color: '#4f86c6', x: 1015, y: 830, dir: -Math.PI/2, target: null, carry: null, workUntil: 0 },
+    { id: 'bot-2', name: 'Bot Sam', color: '#8a6dc2', x: 1105, y: 830, dir: -Math.PI/2, target: null, carry: null, workUntil: 0 }
+  ];
+}
+function botById(id) { return (G && G.bots || []).find(b => b.id === id); }
+function updateSoloBots(dt) {
+  if (!G || G.phase !== 'play' || net.code !== 'SOLO' || !G.bots.length) return;
+  const speed = 175;
+  for (const b of G.bots) {
+    if (b.workUntil > G.t) continue;
+    let c = b.carry ? G.colis.find(x => x.id === b.carry) : null;
+    if (b.carry && !c) { b.carry = null; b.target = null; }
+    if (!c) {
+      c = G.colis.find(x => !x.heavy && !x.carriers.length && (!(G.bots || []).some(o => o.target === x.id && o !== b)));
+      if (c) b.target = c.id;
+    }
+    if (c && !b.carry) {
+      b.dir = Math.atan2(c.y-b.y,c.x-b.x);
+      if (moveTo(b,c.x,c.y,speed,dt)) { c.carriers=[b.id]; b.carry=c.id; b.target=null; }
+      continue;
+    }
+    if (c && b.carry) {
+      const st = STATIONS.find(st => st.bac === c.dest);
+      if (!st) { c.carriers=[]; b.carry=null; continue; }
+      b.dir = Math.atan2(st.y-b.y,st.x-b.x);
+      c.x=b.x; c.y=b.y;
+      if (moveTo(b,st.x,st.y,speed,dt)) {
+        G.colis = G.colis.filter(x => x !== c);
+        const item={e:c.e,n:c.n,cat:c.cat,heavy:c.heavy,price:c.price};
+        if (c.dest === 'magasin') G.shelved.push(item); else if (G.stock[c.dest]) G.stock[c.dest].push(item);
+        b.carry=null; b.target=null; b.workUntil=G.t+0.8;
+        fxAll(st.x,st.y-40,b.name+' aide','good');
+      }
+      continue;
+    }
+    // Quand il n'y a rien à transporter, les bots font avancer le traitement en solo.
+    const keys=['deee','jouets','textile','vaisselle','livres','deco','sport','velo'];
+    const src=keys.find(k => G.stock[k] && G.stock[k].length);
+    if (src) { G.stock.reserve.push(G.stock[src].shift()); b.workUntil=G.t+3.5; continue; }
+    if (G.stock.reserve.length) { G.shelved.push(G.stock.reserve.shift()); b.workUntil=G.t+3.5; continue; }
+  }
+}
+
 function removePlayer(id) {
   const p = G && G.players.get(id); if (!p) return;
   if (p.station) hostRelease(p, p.station, true);
@@ -1552,6 +1570,7 @@ function snapshot() {
     events: G.events.map(e => ({ id: e.id, type: e.type, left: Math.ceil(e.left), missed: e.missed, busy: !!e.lockBy,
       rx: e.rob ? Math.round(e.rob.x) : null, ry: e.rob ? Math.round(e.rob.y) : null,
       re: e.rob ? (e.rob.item ? e.rob.item.e : (e.rob.phase === 'flee' ? '🎁' : null)) : null, grab: e.rob ? e.rob.phase === 'grab' : false })),
+    bots: (G.bots || []).map(b => ({ id:b.id,name:b.name,color:b.color,x:Math.round(b.x),y:Math.round(b.y),dir:+b.dir.toFixed(2),carry:b.carry })),
     players: [...G.players.values()].map(p => ({ id: p.id, name: p.name, color: p.color,
       x: Math.round(p.x), y: Math.round(p.y), dir: Math.round(p.dir * 100) / 100, moving: p.moving, station: p.station,
       fz: Math.ceil(p.frozen || 0), cd: Math.max(0, Math.ceil((p.cheatCd || 0) - G.t)), acct: !!p.acct, driving: !!p.driving })),
@@ -1726,6 +1745,8 @@ function startDay() {
     p.station = null; p.res = null; p.run = false; p.frozen = 0; p.cheat = null; p.cheatCd = 0; p.riskUntil = 0; p.noCatchUntil = 0;
     const s = spawnPos(i++); p.x = s.x; p.y = s.y;
   }
+  if (net.code === 'SOLO' && !G.bots.length) G.bots = makeSoloBots();
+  (G.bots || []).forEach((b,j) => { b.x=1015+j*90; b.y=830; b.target=null; b.carry=null; b.workUntil=0; });
   makeEnc();
   hostTick();
   if (G.day === 1) {
@@ -1916,12 +1937,12 @@ function spawnColis(it, dest, slots) {
 function colisHostPos(c) {
   if (!c.carriers.length) return;
   let sx = 0, sy = 0, n = 0;
-  c.carriers.forEach(id => { const p = G.players.get(id); if (p) { sx += p.x; sy += p.y; n++; } });
+  c.carriers.forEach(id => { const p = G.players.get(id) || botById(id); if (p) { sx += p.x; sy += p.y; n++; } });
   if (n) { c.x = sx / n; c.y = sy / n; }
 }
 function hostPickup(p, cid) {
   if (G.phase !== 'play' || p.station || p.frozen > 0) return;
-  if (G.colis.some(c => c.carriers.includes(p.id))) return;
+  if (G.colis.filter(c => c.carriers.includes(p.id)).length >= 3) return;
   const c = G.colis.find(c => c.id === cid); if (!c) return;
   colisHostPos(c);
   if (Math.hypot(c.x - p.x, c.y - p.y) > 80) return;
@@ -2318,6 +2339,7 @@ function hostFrame(now, dt) {
     G.t += dt; G.timeLeft = G.dayLen - G.t;
     paceUpdate(dt);
     updateNPCs(dt);
+    updateSoloBots(dt);
     updateEvents(dt);
     if (G.phase === 'play') { updateEncadrants(dt); updateCheats(dt); }
     if (G.phase === 'play' && G.timeLeft <= 0) { G.timeLeft = 0; endDay(); }
@@ -3258,7 +3280,8 @@ function colisPos(c) {
   c.carriers.forEach(id => { const p = playerPos(id); if (p) { sx += p.x; sy += p.y; n++; } });
   return n ? { x: sx / n, y: sy / n } : { x: c.x, y: c.y };
 }
-const myCarry = () => view && view.colis.find(c => c.carriers.includes(net.myId));
+const myCarries = () => view ? view.colis.filter(c => c.carriers.includes(net.myId)) : [];
+const myCarry = () => myCarries()[0] || null;
 
 function applyView(v) {
   // Le camion : on apprend du serveur si c'est nous qui tenons le volant
@@ -3549,14 +3572,18 @@ function computeAction() {
     else act = { type: 'vehout' };
     return;
   }
-  const c = myCarry();
+  const carries = myCarries(), c = carries[0] || null;
   for (const ev of view.events || []) {
-    if (c && ev.type !== 'robert') continue;
+    if (carries.length && ev.type !== 'robert') continue;
     if (ev.type === 'robert' && ev.grab) continue;
     const pos = evPos(ev);
     if (pos && dist(pos, me) < 60) { act = { type: 'event', ev }; return; }
   }
-  if (c) { act = { type: 'drop', c }; return; }
+  // Avec plusieurs objets, on peut continuer à ramasser jusqu'à 3. Près d'un bac, E dépose d'abord l'objet correspondant.
+  if (carries.length) {
+    const drop = carries.find(k => { const pos=colisPos(k), s=nearestBac(pos.x,pos.y); return s && s.bac===k.dest; });
+    if (drop) { act={type:'drop',c:drop}; return; }
+  }
   let best = null;
   for (const k of view.colis) {
     const canTake = k.carriers.length === 0 || (k.heavy && k.carriers.length === 1);
@@ -3568,7 +3595,8 @@ function computeAction() {
   for (const s of STATIONS) { const d = dist(s, me); if (d < 60 && (!bs || d < bs.d)) bs = { d, s }; }
   let bv = null;
   if (view.veh) { const d = dist(view.veh, me); if (d < 80) bv = { d }; }   // prendre le camion
-  if (best && (!bs || best.d < bs.d) && (!bv || best.d < bv.d)) act = { type: 'pickup', c: best.c };
+  if (best && carries.length < 3 && (!bs || best.d < bs.d) && (!bv || best.d < bv.d)) act = { type: 'pickup', c: best.c };
+  else if (carries.length) act = { type: 'drop', c: carries[0] };
   else if (bv && (!bs || bv.d <= bs.d)) act = { type: 'veh' };
   else if (bs) act = { type: 'station', s: bs.s, info: stationInfo(bs.s) };
 }
@@ -3592,7 +3620,7 @@ function renderAction() {
       key = 'ev' + ev.id + ev.busy;
     } else if (act.type === 'pickup') {
       const c = act.c;
-      html = '<kbd>E</kbd>' + (c.heavy ? (c.carriers.length ? 'Aider à porter ' : 'Soulever ') : 'Prendre ') + c.e + ' ' + esc(c.n);
+      html = '<kbd>E</kbd>' + (c.heavy ? (c.carriers.length ? 'Aider à porter ' : 'Soulever ') : 'Prendre ') + c.e + ' ' + esc(c.n) + ' <span style="opacity:.7">(' + myCarries().length + '/3)</span>';
       key = 'pick' + c.id + c.carriers.length;
     } else if (act.type === 'veh') { html = '<kbd>E</kbd>Prendre le camion'; key = 'veh' + (view.veh ? view.veh.loaded : ''); }
     else if (act.type === 'vehout') { html = '<kbd>E</kbd>Descendre du camion'; key = 'vehout'; }
@@ -3718,10 +3746,10 @@ function renderHud() {
   $('chList').innerHTML = chs.map(c => `<li class="${c.done ? 'done' : ''}"><span>${c.done ? '✓' : '•'} ${esc(c.label)}</span><b>${c.prog}/${c.target}</b></li>`).join('');
   const stName = id => { const s = STATIONS.find(s => s.id === id); return s ? s.name.toLowerCase() : ''; };
   $('plist').innerHTML = view.players.map(p => {
-    const carry = view.colis.find(k => k.carriers.includes(p.id));
-    const doing = p.station ? stName(p.station) : carry ? 'porte ' + carry.e : '';
+    const carries = view.colis.filter(k => k.carriers.includes(p.id));
+    const doing = p.station ? stName(p.station) : carries.length ? 'porte ' + carries.map(x=>x.e).join(' ') + ' ('+carries.length+'/3)' : '';
     return `<li><span class="dot" style="background:${p.color}"></span><strong>${esc(p.name)}</strong><span class="muted">${doing}</span></li>`;
-  }).join('');
+  }).join('') + ((view.bots||[]).map(b => `<li><span class="dot" style="background:${b.color}"></span><strong>${esc(b.name)}</strong><span class="muted">bot solo</span></li>`).join(''));
   // Salle d'attente
   $('roomCode').textContent = view.code;
   $('roomPlayers').innerHTML = view.players.map(p =>
@@ -3880,6 +3908,7 @@ function draw(t, now) {
       if (p.id === net.myId || p.driving) return;
       const r = rp.get(p.id); if (r) drawPlayer(r.x, r.y, r.dir, p.moving ? r.walk : 0, p.color, p.name);
     });
+    (view.bots||[]).forEach(b => drawPlayer(b.x,b.y,b.dir,performance.now()/180,b.color,b.name));
     drawTruck(view.veh, !!(view.veh && view.veh.loaded), view.trip);
     if (!me.driving) drawPlayer(me.x, me.y, me.dir, me.moving ? me.walk : 0, myColor(), null);
     view.colis.filter(c => c.carriers.length).forEach(c => { const p = colisPos(c); drawColis(c, p.x, p.y - 26, true); });
@@ -4233,6 +4262,7 @@ function drawMinimap() {
   });
   ctx.fillStyle = '#8a8f86';
   view.colis.forEach(c => { const p = colisPos(c); ctx.fillRect(ox + p.x * k - 1.5, oy + p.y * k - 1.5, 3, 3); });
+  (view.bots||[]).forEach(b => { ctx.fillStyle=b.color; ctx.beginPath(); ctx.arc(ox+b.x*k,oy+b.y*k,3,0,7); ctx.fill(); });
   view.players.forEach(p => {
     const pos = p.id === net.myId ? me : (rp.get(p.id) || p);
     ctx.fillStyle = p.color; ctx.beginPath(); ctx.arc(ox + pos.x * k, oy + pos.y * k, p.id === net.myId ? 4.5 : 3.5, 0, 7); ctx.fill();
@@ -4941,11 +4971,12 @@ ITEM_GAMES.deee_printer = (el, api, ctx) => {
 
 ITEM_GAMES.deee_pc = (el, api, ctx) => {
   const ports = shuffle(['USB', 'HDMI', 'ALIM', 'AUDIO']);
+  const cables = shuffle(['USB', 'HDMI', 'ALIM', 'AUDIO']);
   const mapping = { USB:'🔌', HDMI:'🖥️', ALIM:'⚡', AUDIO:'🎧' };
   let done = 0;
   el.innerHTML = itemHead(ctx.item, 'Ordinateur : branche chaque câble sur le bon port.') +
     `<div class="row" id="ports">${ports.map(p => `<button class="btn vis" data-p="${p}">${mapping[p]} ${p}</button>`).join('')}</div>
-     <div class="row" id="cables">${ports.map(p => `<button class="btn" data-c="${p}">Câble ${p}</button>`).join('')}</div>
+     <div class="row" id="cables">${cables.map(p => `<button class="btn" data-c="${p}">Câble ${p}</button>`).join('')}</div>
      <div class="muted small">Choisis un câble puis son port.</div>`;
   let selected = null;
   el.querySelectorAll('[data-c]').forEach(b => b.onclick = () => {
