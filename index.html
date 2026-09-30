@@ -1727,7 +1727,10 @@ function startTrip(id) {
   S('bell');
 }
 function endTrip() {
-  G.trip = null; G.gateT = 0;
+  G.trip = null;
+  // Après une livraison, les joueurs doivent pouvoir rentrer dans la ressourcerie.
+  // On laisse donc le rideau des apports ouvert au retour du camion.
+  G.gateT = 1;
   G.colis = G.colis.filter(c => c.dest !== 'livraison');
   if (G.veh) { G.veh.loaded = false; G.veh.driver = null; G.veh.dmg = 0; }
   for (const p of G.players.values()) p.driving = false;
