@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Paiss Simulator</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>♻️</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -10,7 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <style>
-*{box-sizing:border-box}
+*{box-sizing:border-box;touch-action:pan-x pan-y}   /* partout : pas de pincement ni de double-tap pour zoomer (le canvas et les boutons tactiles gardent « none ») */
 :root{
   --bg:#2a2d2a; --panel:#ecebe6; --panel-2:#dcdad2; --ink:#1d1f1c; --muted:#5f625c;
   --line:#c5c2b8; --vis:#ff7a00; --vis-ink:#1d1f1c; --ok:#1f7a55; --ko:#c8372d; --kraft:#c89b63; --gold:#e0a800;
@@ -30,6 +30,7 @@
   --line:#3a3f38; --ok:#35a877; --ko:#e2574c; --shadow:0 14px 40px rgba(0,0,0,.6);
 }
 html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
+html,body{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 @supports (height:100dvh){html{height:100dvh}}
 body{height:100%;margin:0;background:var(--bg);color:var(--ink);
   font-family:"Bricolage Grotesque",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overflow:hidden}
@@ -351,25 +352,6 @@ label.lbl{display:block;font-weight:700;margin:12px 0 6px;font-size:14px}
   .card{padding:14px} .big{font-size:44px}
 }
 
-/* =================== MODE ZOMBIE =================== */
-#zombieHud{
-  position:absolute;left:12px;top:12px;z-index:6;display:none;
-  background:rgba(12,14,12,.88);color:#fff;border:2px solid rgba(255,255,255,.16);
-  border-radius:14px;padding:10px 14px;box-shadow:0 8px 24px rgba(0,0,0,.3);
-  font-weight:800;pointer-events:none;min-width:190px
-}
-#zombieHud .zh-title{font-size:16px;margin-bottom:4px}
-#zombieHud .zh-line{display:flex;gap:14px;justify-content:space-between;font-size:14px}
-#zombieHud .zh-wave{color:#ffcf5a}
-#zombieHud .zh-life{color:#ff7777}
-#zombieHud .zh-help{margin-top:5px;font-size:12px;font-weight:700;opacity:.78}
-#zombieExit{
-  position:absolute;right:12px;top:12px;z-index:6;display:none;
-  border:0;border-radius:10px;padding:9px 12px;background:rgba(12,14,12,.88);color:#fff;
-  font-weight:800;cursor:pointer
-}
-
-
 /* ===== v1.5.0 : fenêtres des mini-jeux + Apport dynamique ===== */
 @keyframes poleWindowInPro {
   0%   { opacity:0; transform:translateY(22px) scale(.92) rotateX(4deg); filter:blur(7px); }
@@ -468,6 +450,12 @@ label.lbl{display:block;font-weight:700;margin:12px 0 6px;font-size:14px}
   .pole-window-animated,.pole-window-animated header,.pole-window-animated .pole-window-content > *,
   .apport-object,.apport-object::after,.apport-content{animation:none!important}
 }
+#vehPad{position:absolute;left:0;right:0;bottom:92px;display:flex;justify-content:space-between;align-items:flex-end;padding:0 max(12px,env(safe-area-inset-left,0px));pointer-events:none;z-index:3}
+#vehPad[hidden]{display:none}
+#vehPad .vp-grp{display:flex;gap:10px}
+#vehPad button{pointer-events:auto;width:clamp(58px,17vw,76px);height:clamp(58px,17vw,76px);border:0;border-radius:20px;background:var(--panel);color:var(--ink);box-shadow:var(--shadow);font-size:30px;line-height:1;padding:0;opacity:.94;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+#vehPad button.on{background:var(--vis);color:var(--vis-ink);transform:scale(.95)}
+body.driving #runBtn{display:none}
 #tutoBox{position:absolute;left:50%;bottom:86px;transform:translateX(-50%);width:min(500px,calc(100% - 24px));background:var(--panel);border-radius:16px;box-shadow:var(--shadow);padding:10px 14px 12px;z-index:9;border:2px solid var(--vis)}
 #tutoBox[hidden]{display:none}
 .tuto-head{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);margin-bottom:6px}
@@ -486,6 +474,7 @@ label.lbl{display:block;font-weight:700;margin:12px 0 6px;font-size:14px}
   #tutoBox{bottom:84px;padding:8px 12px 10px}
   #tutoText{font-size:13px;margin-bottom:6px}
   body.tuto-on #toasts{bottom:calc(88px + var(--tuto-h,0px) + 8px)}
+  body.padon #toasts{bottom:calc(var(--pad-lift,0px) + 6px)}
 }
 </style>
 </head>
@@ -494,14 +483,6 @@ label.lbl{display:block;font-weight:700;margin:12px 0 6px;font-size:14px}
   <canvas id="game"></canvas>
 
   <div id="vignette"></div>
-
-  <div id="zombieHud">
-    <div class="zh-title">🧟 MODE ZOMBIE</div>
-    <div class="zh-line"><span class="zh-wave">Vague <b id="zWave">1</b></span><span class="zh-life">❤️ <b id="zLives">3</b></span></div>
-    <div class="zh-line"><span>Restants</span><b id="zLeft">0</b></div>
-    <div class="zh-help">F : attaquer · Échap : quitter</div>
-  </div>
-  <button id="zombieExit" type="button">✕ Quitter</button>
 
   <div id="topUI">
   <div id="daybar" hidden>
@@ -532,6 +513,10 @@ label.lbl{display:block;font-weight:700;margin:12px 0 6px;font-size:14px}
   </div>
   <div id="alert" hidden></div>
   <div id="toasts"></div>
+  <div id="vehPad" hidden role="group" aria-label="Commandes du camion">
+    <div class="vp-grp"><button type="button" data-vk="left" aria-label="Tourner à gauche">◀</button><button type="button" data-vk="right" aria-label="Tourner à droite">▶</button></div>
+    <div class="vp-grp"><button type="button" data-vk="down" aria-label="Reculer">▼</button><button type="button" data-vk="up" aria-label="Avancer">▲</button></div>
+  </div>
   <div id="tutoBox" hidden role="region" aria-label="Tuto" aria-live="polite">
     <div class="tuto-head"><span class="tuto-badge">🎓 Tuto</span><span id="tutoStep"></span><span class="grow"></span><button type="button" class="linkbtn" id="tutoQuit">Quitter le tuto</button></div>
     <div class="tuto-bar"><i id="tutoProg"></i></div>
@@ -570,7 +555,6 @@ label.lbl{display:block;font-weight:700;margin:12px 0 6px;font-size:14px}
       </div>
       <div class="row"><button class="btn" id="customBtn">🧑 Personnaliser mon personnage</button></div>
       <div class="row"><button class="btn" id="lbMenuBtn">🏆 Classement</button></div>
-      <div class="row"><button class="btn" id="zombieBtn">🧟 Mode Zombie</button></div>
       <div id="lbPreview" class="lbpreview"></div>
       <div id="adminZone">
         <button type="button" class="linkbtn" id="adminLink">Passer en mode admin</button>
@@ -681,7 +665,7 @@ label.lbl{display:block;font-weight:700;margin:12px 0 6px;font-size:14px}
 <script>
 (() => {
 'use strict';
-const VERSION = 13;
+const VERSION = 14;
 const EMO = '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
 const FONT = '"Bricolage Grotesque",system-ui,sans-serif';
 const $ = id => document.getElementById(id);
@@ -796,6 +780,7 @@ const UPGRADES = [
   { id: 'formation', icon: '🎓', name: 'Formation', desc: 'Mini-jeux plus tolérants et plus rapides.', cost: [60, 140] },
   { id: 'musique', icon: '🎶', name: 'Musique en boutique', desc: 'Donneurs et clients patientent plus longtemps.', cost: [70] },
   { id: 'diable', icon: '🏋️', name: 'Diable de manutention', desc: 'Les objets lourds se déplacent seul.', cost: [130] },
+  { id: 'bots', icon: '🤖', name: 'Bots d\'aide (solo)', desc: 'En solo uniquement : un bot t\'aide à trier, étiqueter et encaisser. Niveau 1 : Lina. Niveau 2 : Lina et Sam.', cost: [150, 300] },
 ];
 const defaultUpg = () => Object.fromEntries(UPGRADES.map(u => [u.id, 0]));
 const goalFor = (day, n) => Math.round((30 + 25 * (day - 1)) * (1 + 0.65 * (n - 1)));
@@ -814,7 +799,7 @@ const CHALLENGES = [
   { id: 'sold16', fam: 'sold', label: 'Vendre 16 objets', target: 16, reward: 55, val: g => g.sold },
   { id: 'combo10', fam: 'combo', label: 'Monter un combo ×1,50', target: 10, reward: 40, val: g => g.bestCombo },
   { id: 'combo20', fam: 'combo', label: 'Monter un combo ×2,00', target: 20, reward: 70, val: g => g.bestCombo },
-  { id: 'catch1', fam: 'ev', label: 'Rattraper Robert', target: 1, reward: 40, val: g => g.evOk },
+  { id: 'catch1', fam: 'ev', label: 'Rattraper le voleur', target: 1, reward: 40, val: g => g.evOk },
   { id: 'clean', fam: 'tri', label: 'Aucune erreur de tri', target: 1, reward: 50, val: g => (g.errors === 0 ? 1 : 0) },
   { id: 'noflee', fam: 'monde', label: 'Personne perdue', target: 1, reward: 45, val: g => (g.lost === 0 ? 1 : 0) },
   { id: 'good', fam: 'don', label: 'Réceptionner 3 dons sans faute', target: 3, reward: 35, val: g => g.donGood },
@@ -843,12 +828,13 @@ const rooms = [
   { x: 502, y: 182, w: 346, h: 716, c: '#e5d8df', label: 'Textile', lx: 670, ly: 520 },
   { x: 832, y: 882, w: 568, h: 346, c: '#cdc8bd', label: 'Réserve', lx: 1120, ly: 930 },
   { x: 832, y: 1212, w: 568, h: 688, c: '#ece6d6', label: 'Magasin', lx: 1000, ly: 1760 },
+  { x: 24, y: 24, w: 496, h: 158, c: '#dbc9a0' },          // Repair Café : terrasse en bois, à l'air libre, au-dessus de l'atelier vélo
 ];
 const walls = [
   { x: 832, y: 0, w: 568, h: T }, { x: 832, y: 0, w: T, h: 198 },
   { x: 1384, y: 0, w: 16, h: 52 },
   { x: 1384, y: 160, w: 16, h: H - 160 },
-  { x: 0, y: 182, w: 848, h: T }, { x: 0, y: 182, w: T, h: 716 }, { x: 0, y: 882, w: 848, h: T },
+  { x: 0, y: 182, w: 520, h: T }, { x: 640, y: 182, w: 208, h: T }, { x: 0, y: 182, w: T, h: 716 }, { x: 0, y: 882, w: 848, h: T },   // la porte du Repair Café est entre x 520 et 640
   { x: 502, y: 182, w: T, h: 318 }, { x: 502, y: 590, w: T, h: 308 },
   { x: 832, y: 182, w: T, h: 68 }, { x: 832, y: 340, w: T, h: 558 },
   { x: 848, y: 182, w: 112, h: T }, { x: 1080, y: 182, w: 304, h: T },
@@ -857,7 +843,7 @@ const walls = [
   { x: 848, y: 1212, w: 212, h: T }, { x: 1180, y: 1212, w: 204, h: T },
   { x: 832, y: 1884, w: 568, h: 16 },
 ];
-const doors = [[502, 500, T, 90], [832, 250, T, 90], [960, 182, 120, T], [1100, 882, 100, T], [1060, 1212, 120, T]];
+const doors = [[520, 182, 120, T], [502, 500, T, 90], [832, 250, T, 90], [960, 182, 120, T], [1100, 882, 100, T], [1060, 1212, 120, T]];
 const poleZones = [
   { k: 'deee', x: 850, y: 420, w: 178, h: 460, lx: 975, ly: 440 },
   { k: 'sport', x: 1026, y: 370, w: 160, h: 280, lx: 1106, ly: 630 },
@@ -890,6 +876,8 @@ const furniture = [
   { x: 960, y: 1460, w: 260, h: 30, type: 'gondola' },
   { x: 960, y: 1590, w: 260, h: 30, type: 'gondola' },
   { x: 1240, y: 1720, w: 130, h: 36, type: 'counter', icons: ['💶', '🧾'] },
+  { x: 190, y: 52, w: 200, h: 34, type: 'table', icons: ['☕', '🔌', '📻'] },     // Repair Café : table 1
+  { x: 190, y: 122, w: 200, h: 34, type: 'table', icons: ['🔧', '🍞', '🔦'] },    // Repair Café : table 2
   { x: 1128, y: 162, w: 130, h: 16, type: 'board' },
 ];
 const solids = walls.concat(furniture);
@@ -960,7 +948,7 @@ const EVENTS = {
     hint: 'Va la calmer au pôle Jouets : le pôle est bloqué.' },
   quentin: { name: 'Quentin déclenche la RQ', who: 'Quentin', icon: '⚡', time: 35, fatal: true, blocks: ['test', 'repair'],
     hint: 'Massage du bras en urgence au pôle DEEE, sinon la partie est perdue !' },
-  robert: { name: 'Robert vole un apport', who: 'Robert', icon: '🦹', blocks: ['apport'],
+  robert: { name: 'Un voleur s\'en prend à un apport', who: 'Un voleur', icon: '🦹', blocks: ['apport'],
     hint: 'Rattrape-le avant qu\'il sorte par la porte du magasin !' },
 };
 const COWORKERS = { yanis: { x: 990, y: 560, color: '#3d6a9e' }, quentin: { x: 990, y: 730, color: '#2f6fb5' },
@@ -1074,314 +1062,6 @@ const SND = (() => {
 const S = (n, a) => SND.play(n, a);
 addEventListener('pointerdown', () => SND.init(), { capture: true });
 
-/* =================== MODE ZOMBIE =================== */
-let zombieMode = false;
-let zombieState = null;
-let zombieLastAttack = 0;
-
-function startZombieMode() {
-  if (G || view) { setStatus('Quitte d’abord la partie en cours.'); return; }
-  zombieMode = true;
-  zombieState = { wave:1, lives:3, zombies:[], spawnLeft:4, spawnTimer:.25, betweenWave:0, score:0, gameOver:false, hitFlash:0, shake:0 }; zombieNav.timer=0; zombieNav.targetCell=-1;
-
-  /* Le mode Zombie est une surcouche de la vraie partie : même carte, mêmes pôles,
-     mêmes PNJ, même économie, mêmes objets, mêmes livraisons et même journée. */
-  startSolo();
-  if (!G) { zombieMode=false; zombieState=null; return; }
-  startDay();
-  G.gate=1; G.gateT=1;
-  hostTick();
-
-  $('menu').hidden=true; $('zombieHud').style.display='block'; $('zombieExit').style.display='block';
-  $('daybar').hidden=false; $('hud').hidden=false; $('actionBtn').hidden=false;
-  showToast('🧟 Journée normale + invasion zombie : travaille et survie aux vagues !', true);
-  updateZombieHud();
-}
-function exitZombieMode() {
-  zombieMode=false; zombieState=null;
-  try{closeModal(true);}catch(e){}
-  try{clearInterval(hostTimer);}catch(e){}
-  try{net.peer&&net.peer.destroy();}catch(e){}
-  Object.assign(net,{peer:null,isHost:false,myId:null,code:'',hostConn:null}); net.conns.clear();
-  G=null; view=null; lastPhase=null; rp.clear(); npcR.clear(); fxList.length=0;
-  ['room','summary','modal','hud','daybar','actionBtn','touchBtns'].forEach(id=>$(id).hidden=true);
-  $('zombieHud').style.display='none'; $('zombieExit').style.display='none'; $('menu').hidden=false; setStatus(''); refreshPodium();
-}
-function zombieSpawnPoint(){
-  /* Entrée réelle de la ressourcerie : les zombies apparaissent dehors,
-     exactement face au passage du mur est. */
-  return {x:1418+Math.random()*10,y:68+Math.random()*82};
-}
-
-/* ------------------------------------------------------------------
-   Navigation Zombie
-   ------------------------------------------------------------------
-   Le vieux déplacement suivait simplement la ligne droite vers le joueur.
-   Sur cette carte cela suffisait à coincer les zombies contre les murs.
-   On construit donc un champ de navigation BFS à intervalles réguliers.
-   Tous les zombies suivent ensuite la même route vers le joueur.
-------------------------------------------------------------------- */
-const zombieNav = {
-  cell:32,
-  cols:Math.ceil(W/32),
-  rows:Math.ceil(H/32),
-  dist:null,
-  next:null,
-  timer:0,
-  targetCell:-1
-};
-zombieNav.dist=new Int32Array(zombieNav.cols*zombieNav.rows);
-zombieNav.next=new Int32Array(zombieNav.cols*zombieNav.rows);
-
-function zombieCell(cx,cy){ return cy*zombieNav.cols+cx; }
-function zombieCellXY(id){ return {x:id%zombieNav.cols,y:Math.floor(id/zombieNav.cols)}; }
-function zombieCellCenter(cx,cy){
-  return {x:clamp(cx*zombieNav.cell+zombieNav.cell*.5,30,W-30),y:clamp(cy*zombieNav.cell+zombieNav.cell*.5,30,H-30)};
-}
-function zombieCanMove(x,y,r=15){
-  if(x<28||y<28||x>W-28||y>H-28)return false;
-  if(view&&view.veh&&hitRect(x,y,r,{x:view.veh.x-22,y:view.veh.y-30,w:44,h:60}))return false;
-  if(cityHit(x,y,r))return false;
-  return !solids.some(b=>hitRect(x,y,r,b));
-}
-
-/* Vérifie toute la ligne entre deux points, pas seulement son point d'arrivée.
-   C'est ce qui empêche un zombie de traverser un mur fin situé entre deux cases. */
-function zombiePathClear(ax,ay,bx,by,r=14){
-  const d=Math.hypot(bx-ax,by-ay);
-  const n=Math.max(1,Math.ceil(d/5));
-  for(let i=1;i<=n;i++){
-    const t=i/n;
-    const x=ax+(bx-ax)*t, y=ay+(by-ay)*t;
-    if(!zombieCanMove(x,y,r))return false;
-  }
-  return true;
-}
-
-function zombieFreeCell(cx,cy){
-  cx=clamp(cx,0,zombieNav.cols-1);cy=clamp(cy,0,zombieNav.rows-1);
-  const p=zombieCellCenter(cx,cy);
-  if(zombieCanMove(p.x,p.y,13))return zombieCell(cx,cy);
-  for(let radius=1;radius<6;radius++){
-    for(let oy=-radius;oy<=radius;oy++){
-      for(let ox=-radius;ox<=radius;ox++){
-        if(Math.abs(ox)!==radius&&Math.abs(oy)!==radius)continue;
-        const nx=cx+ox,ny=cy+oy;
-        if(nx<0||ny<0||nx>=zombieNav.cols||ny>=zombieNav.rows)continue;
-        const q=zombieCellCenter(nx,ny);
-        if(zombieCanMove(q.x,q.y,13))return zombieCell(nx,ny);
-      }
-    }
-  }
-  return -1;
-}
-
-function zombieRebuildNav(force=false){
-  if(!zombieMode||!view)return;
-  zombieNav.timer-=force?1:0;
-  if(!force&&zombieNav.timer>0)return;
-  zombieNav.timer=.24;
-
-  const tc=zombieFreeCell(Math.floor(me.x/zombieNav.cell),Math.floor(me.y/zombieNav.cell));
-  if(tc<0)return;
-  zombieNav.targetCell=tc;
-  zombieNav.dist.fill(-1);
-  zombieNav.next.fill(-1);
-
-  const q=new Int32Array(zombieNav.cols*zombieNav.rows);
-  let head=0,tail=0;
-  q[tail++]=tc;
-  zombieNav.dist[tc]=0;
-
-  /* 4 directions : un zombie ne coupe jamais une diagonale à travers un coin. */
-  const dirs=[[-1,0],[1,0],[0,-1],[0,1]];
-  while(head<tail){
-    const cur=q[head++];
-    const c=zombieCellXY(cur);
-    const from=zombieCellCenter(c.x,c.y);
-    for(const [ox,oy] of dirs){
-      const nx=c.x+ox,ny=c.y+oy;
-      if(nx<0||ny<0||nx>=zombieNav.cols||ny>=zombieNav.rows)continue;
-      const ni=zombieCell(nx,ny);
-      if(zombieNav.dist[ni]>=0)continue;
-      const to=zombieCellCenter(nx,ny);
-      if(!zombiePathClear(from.x,from.y,to.x,to.y,13))continue;
-      zombieNav.dist[ni]=zombieNav.dist[cur]+1;
-      zombieNav.next[ni]=cur;
-      q[tail++]=ni;
-    }
-  }
-}
-
-function zombieDirection(z){
-  const cx=clamp(Math.floor(z.x/zombieNav.cell),0,zombieNav.cols-1);
-  const cy=clamp(Math.floor(z.y/zombieNav.cell),0,zombieNav.rows-1);
-  const id=zombieCell(cx,cy),ni=zombieNav.next[id];
-  if(ni>=0){
-    const p=zombieCellXY(ni),c=zombieCellCenter(p.x,p.y);
-    return {x:c.x,y:c.y,valid:true};
-  }
-  return {x:me.x,y:me.y,valid:false};
-}
-
-function zombieTryMove(z,nx,ny){
-  const r=z.r||14;
-  if(zombiePathClear(z.x,z.y,nx,ny,r)){z.x=nx;z.y=ny;return true;}
-
-  /* Glissement uniquement le long d'un obstacle ; jamais à travers lui. */
-  if(zombiePathClear(z.x,z.y,nx,z.y,r)){z.x=nx;return true;}
-  if(zombiePathClear(z.x,z.y,z.x,ny,r)){z.y=ny;return true;}
-  return false;
-}
-
-function zombieSpawnPoint(){ return {x:1418+Math.random()*10,y:68+Math.random()*82}; }
-
-function zombieSpawn(){
-  if(!zombieState||!zombieMode)return;
-  const p=zombieSpawnPoint();
-  zombieState.zombies.push({
-    id:Math.random().toString(36).slice(2),x:p.x,y:p.y,r:14,hp:1,
-    speed:52+zombieState.wave*2.5+Math.random()*12,
-    attackCd:0,walk:Math.random()*Math.PI*2,dir:Math.PI,
-    attackAnim:0,hit:0,spawnAnim:.40,deathAnim:0,alive:true,stuck:0
-  });
-  zombieState.spawnLeft--;
-}
-function zombieNearest(range=96){
-  if(!zombieState)return null;
-  let best=null,bestD=Infinity;
-  for(const z of zombieState.zombies){
-    if(!z.alive)continue;
-    const d=Math.hypot(z.x-me.x,z.y-me.y);
-    if(d<=range&&d<bestD){best=z;bestD=d;}
-  }
-  return best;
-}
-function zombieAttack(){
-  if(!zombieMode||!zombieState||zombieState.gameOver)return false;
-  const now=performance.now();
-  if(now-zombieLastAttack<260)return false;
-  zombieLastAttack=now;
-  const best=zombieNearest(96);
-  if(!best){S('drop');return false;}
-  best.alive=false;best.hp=0;best.hit=.42;best.deathAnim=.42;
-  zombieState.score++;fxAll(best.x,best.y,'+1','ok');S('ok');
-  return true;
-}
-function updateZombie(dt){
-  const zt=zombieState;
-  if(!zombieMode||!zt||zt.gameOver)return;
-  zombieRebuildNav();
-  if(zt.spawnLeft>0){
-    zt.spawnTimer-=dt;
-    if(zt.spawnTimer<=0){zombieSpawn();zt.spawnTimer=Math.max(.48,1.0-zt.wave*.022);}
-  }
-  let alive=0;
-  for(const z of zt.zombies){
-    if(!z.alive){z.hit=Math.max(0,z.hit-dt);z.deathAnim=Math.max(0,z.deathAnim-dt);continue;}
-    alive++;
-    z.attackCd=Math.max(0,z.attackCd-dt);
-    z.attackAnim=Math.max(0,z.attackAnim-dt);
-    z.hit=Math.max(0,z.hit-dt);
-    z.spawnAnim=Math.max(0,z.spawnAnim-dt);
-
-    const dPlayer=Math.hypot(me.x-z.x,me.y-z.y);
-    let dx,dy;
-    if(dPlayer<72){
-      dx=(me.x-z.x)/(dPlayer||1);dy=(me.y-z.y)/(dPlayer||1);
-    }else{
-      const route=zombieDirection(z);
-      dx=route.x-z.x;dy=route.y-z.y;
-      const d=Math.hypot(dx,dy)||1;dx/=d;dy/=d;
-    }
-
-    const oldX=z.x,oldY=z.y;
-    const step=z.speed*dt;
-    const moved=zombieTryMove(z,z.x+dx*step,z.y+dy*step);
-    const md=Math.hypot(z.x-oldX,z.y-oldY);
-    if(moved&&md>.01){
-      z.dir=Math.atan2(z.y-oldY,z.x-oldX);
-      z.walk+=dt*(10+md*.15);
-      z.stuck=0;
-    }else{
-      z.stuck+=dt;
-      if(z.stuck>.20){zombieRebuildNav(true);z.stuck=0;}
-    }
-
-    const contact=Math.hypot(me.x-z.x,me.y-z.y);
-    if(contact<34&&z.attackCd<=0){
-      z.attackCd=1.05;z.attackAnim=.34;zt.lives--;zt.hitFlash=.32;zt.shake=.20;S('bad');
-      const px=z.x+(z.x-me.x)*1.6,py=z.y+(z.y-me.y)*1.6;
-      if(zombieCanMove(px,py,z.r)){z.x=px;z.y=py;}
-      else if(zombieCanMove(px,z.y,z.r))z.x=px;
-      else if(zombieCanMove(z.x,py,z.r))z.y=py;
-      if(zt.lives<=0){zt.gameOver=true;G.paused=true;$('actionBtn').textContent='Échap  QUITTER';showToast('💀 La ressourcerie est envahie ! Score : '+zt.score,false);}
-    }
-  }
-  zt.zombies=zt.zombies.filter(z=>z.alive||z.deathAnim>0||z.hit>0);
-  if(zt.spawnLeft===0&&alive===0&&!zt.gameOver){
-    zt.betweenWave+=dt;
-    if(zt.betweenWave>=1.5){
-      zt.wave++;zt.spawnLeft=Math.min(4+zt.wave*2,28);zt.spawnTimer=.15;zt.betweenWave=0;zombieRebuildNav(true);
-      toastAll('🧟 Vague '+zt.wave+' ! '+zt.spawnLeft+' zombies arrivent.');
-    }
-  }
-  zt.hitFlash=Math.max(0,zt.hitFlash-dt);zt.shake=Math.max(0,zt.shake-dt);updateZombieHud();
-}
-function updateZombieHud(){
-  if(!zombieState)return;
-  $('zWave').textContent=zombieState.wave;
-  $('zLives').textContent=zombieState.lives;
-  $('zLeft').textContent=zombieState.zombies.filter(z=>z.alive).length+zombieState.spawnLeft;
-}
-
-function drawZombieOne(z){
-  const alpha=z.alive?1:Math.max(0,z.deathAnim/.42);
-  const fall=z.alive?0:(1-alpha)*6;
-  const walk=z.alive?z.walk:0;
-  const dir=z.dir||0;
-  const col='#55794d';
-
-  ctx.save();
-  ctx.globalAlpha=alpha;
-  ctx.translate(z.x,z.y+fall);
-
-  /* On utilise exactement le même système de pieds/ombre que les personnages du jeu.
-     Le zombie reste donc ancré au sol au lieu de flotter. */
-  const body=drawBody(0,0,dir,walk,col);
-  const fx=body.fx,fy=body.fy;
-  const hx=fx*2,hy=fy*2-1;
-
-  /* Tête de zombie par-dessus le corps du personnage. */
-  ctx.fillStyle='#82a56f';
-  ctx.beginPath();ctx.arc(hx,hy,8.5,0,Math.PI*2);ctx.fill();
-  ctx.strokeStyle='rgba(20,35,23,.55)';ctx.lineWidth=1.5;ctx.stroke();
-  ctx.fillStyle='#182118';
-  ctx.beginPath();ctx.arc(hx+fx*4-fy*2,hy+fy*4+fx*2,1.8,0,Math.PI*2);ctx.arc(hx+fx*4+fy*2,hy+fy*4-fx*2,1.8,0,Math.PI*2);ctx.fill();
-
-  /* Bouche / cicatrice. */
-  ctx.strokeStyle='#223022';ctx.lineWidth=1.7;
-  ctx.beginPath();ctx.moveTo(hx-fy*5,hy+fx*4);ctx.lineTo(hx+fy*5,hy-fx*2);ctx.stroke();
-
-  /* Bras en avant pendant l'attaque. */
-  if(z.attackAnim>0){
-    const push=Math.sin((.34-z.attackAnim)/.34*Math.PI)*8;
-    ctx.strokeStyle='#638958';ctx.lineWidth=3;ctx.lineCap='round';
-    ctx.beginPath();ctx.moveTo(-10,-1);ctx.lineTo(-16-fx*push,-4-fy*push);ctx.moveTo(10,-1);ctx.lineTo(16-fx*push,-4-fy*push);ctx.stroke();
-  }
-  ctx.restore();
-}
-function drawZombieMode(now){
-  const zt=zombieState;if(!zt||!zombieMode)return;
-  for(const z of zt.zombies)drawZombieOne(z);
-  const near=zombieNearest(96);
-  if(near){ctx.save();ctx.globalAlpha=.12;ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.beginPath();ctx.arc(me.x,me.y,96,0,Math.PI*2);ctx.stroke();ctx.restore();}
-  if(zt.hitFlash>0){ctx.save();ctx.fillStyle='rgba(210,25,25,'+Math.min(.3,zt.hitFlash)+')';ctx.fillRect(camX,camY,vw,vh);ctx.restore();}
-  if(zt.gameOver){ctx.save();ctx.fillStyle='rgba(0,0,0,.58)';ctx.fillRect(camX,camY,vw,vh);text('RESSOURCERIE ENVAHIE',me.x,me.y-80,34,'#fff',900);text('Score : '+zt.score+' · Vague : '+zt.wave,me.x,me.y-34,20,'#fff',800);text('Échap ou bouton Quitter',me.x,me.y+8,16,'#fff',700);ctx.restore();}
-}
-
-
-
 /* =================== RÉSEAU =================== */
 const ID_PREFIX = 'paiss-sim-v2-';
 const PEER_OPTS = { debug: 1, config: { iceServers: [
@@ -1489,6 +1169,7 @@ function newState(save) {
     bots: [], botTick: 0,
     veh: { x: DOCK.x, y: DOCK.y, a: DOCK.a, v: 0, dmg: 0, loaded: false, driver: null },
     dayLen: 300, t: 0, timeLeft: 300, nextDonor: 0, nextCustomer: 0,
+    cafe: { bots: [], told: false },
     locks: {}, repairMap: null, last: null, events: [], evId: 1, nextEvent: 0, evOk: 0, evMiss: 0, enc: [], strikes: 0, teamStable: true, runId: '', runN: 1,
   };
 }
@@ -1548,6 +1229,7 @@ function defaultBotConfig(){ return { primary:'auto', assignedPole:null, tasks:O
 function normalizeBotConfig(c){ const d=defaultBotConfig(); c=c&&typeof c==='object'?c:{}; d.primary=BOT_TASKS.includes(c.primary)||c.primary==='auto'?c.primary:'auto'; d.assignedPole=POLES[c.assignedPole]?c.assignedPole:null; for(const x of BOT_TASKS) d.tasks[x]=c.tasks&&typeof c.tasks==='object'?c.tasks[x]!==false:true; for(const x of BOT_CARRY_TYPES) d.carry[x]=c.carry&&typeof c.carry==='object'?c.carry[x]!==false:true; d.carryHeavy=c.carryHeavy!==false; return d; }
 function botAllowsTask(b,st){ const c=normalizeBotConfig(b.config); if(st==='__rayon__') return true; if(c.primary!=='auto' && st!==c.primary) return false; return c.tasks[st]!==false; }
 function botAllowsCarry(b,item){
+  if(item.clean) return false;                 // les objets du Repair Café sont pour les bénévoles et les joueurs
   const c=normalizeBotConfig(b.config);
   if(item.heavy && !c.carryHeavy) return false;
   if(c.carry[item.cat]===false) return false;
@@ -1572,8 +1254,14 @@ function botPoleHeadPos(pole){
 }
 function botConfigSave(){ try{ localStorage.setItem('paiss-bot-config',JSON.stringify((G.bots||[]).map(b=>({id:b.id,config:normalizeBotConfig(b.config)})))); }catch(e){} }
 function botConfigLoad(){ try{ const a=JSON.parse(localStorage.getItem('paiss-bot-config')||'[]'); return new Map(a.map(x=>[x.id,normalizeBotConfig(x.config)])); }catch(e){ return new Map(); } }
-function makeSoloBots() {
-  if (net.code !== 'SOLO') return [];
+const botLevel = () => clamp(((G && G.upg && G.upg.bots) | 0), 0, 2);     // niveau de l'amélioration = nombre de bots
+function makeSoloBots() { return net.code === 'SOLO' ? botRoster().slice(0, botLevel()) : []; }
+function syncBots() {                                                        // ajoute les bots achetés, garde ceux qui existent déjà
+  if (net.code !== 'SOLO') { G.bots = []; return; }
+  const have = G.bots || [];
+  G.bots = botRoster().slice(0, botLevel()).map((b, i) => have[i] || b);
+}
+function botRoster() {
   const saved = botConfigLoad();
   return [
     { id: 'bot-1', name: 'Bot Lina', color: '#4f86c6', x: 1015, y: 830, dir: -Math.PI/2,
@@ -1582,7 +1270,7 @@ function makeSoloBots() {
       target: null, carry: null, workUntil: 0, station: null, res: null, task: null, taskLabel: '', taskStarted: 0, taskDur: 0, config: saved.get('bot-2') || defaultBotConfig() }
   ];
 }
-function botById(id) { return (G && G.bots || []).find(b => b.id === id); }
+function botById(id) { return (G && G.bots || []).find(b => b.id === id) || (G && G.cafe && G.cafe.bots.find(b => b.id === id)) || undefined; }
 
 /* Les bots solo suivent maintenant le même flux métier que les joueurs :
    réception -> mini-jeu du pôle -> réserve -> étiquetage -> rayon -> caisse.
@@ -1902,6 +1590,7 @@ function snapshot() {
     events: G.events.map(e => ({ id: e.id, type: e.type, left: Math.ceil(e.left), missed: e.missed, busy: !!e.lockBy,
       rx: e.rob ? Math.round(e.rob.x) : null, ry: e.rob ? Math.round(e.rob.y) : null,
       re: e.rob ? (e.rob.item ? e.rob.item.e : (e.rob.phase === 'flee' ? '🎁' : null)) : null, grab: e.rob ? e.rob.phase === 'grab' : false })),
+    cafe: ((G.cafe && G.cafe.bots) || []).map(b => ({ id: b.id, x: Math.round(b.x), y: Math.round(b.y), dir: +b.dir.toFixed(2), color: b.color, mv: b.mv ? 1 : 0 })),
     bots: (G.bots || []).map(b => ({ id:b.id,name:b.name,color:b.color,assignedPole:normalizeBotConfig(b.config).assignedPole,x:Math.round(b.x),y:Math.round(b.y),dir:+b.dir.toFixed(2),carry:b.carry,task:b.task,taskLabel:b.taskLabel,taskProgress:b.taskDur?clamp((G.t-b.taskStarted)/b.taskDur,0,1):0 })),
     players: [...G.players.values()].map(p => ({ id: p.id, name: p.name, color: p.color, avatar: p.avatar || null,
       x: Math.round(p.x), y: Math.round(p.y), dir: Math.round(p.dir * 100) / 100, moving: p.moving, station: p.station,
@@ -1985,7 +1674,7 @@ function triggerEvent() {
   const ev = { id: G.evId++, type, left: def.time || 0, missed: false, lockBy: null };
   if (type === 'robert') {
     const r = { x: COWORKERS.robert.x, y: COWORKERS.robert.y, phase: 'grab', item: null, target: null, path: [] };
-    const floor = G.colis.filter(c => !c.carriers.length && c.y < 182);
+    const floor = G.colis.filter(c => !c.carriers.length && c.y < 182 && c.x > 832);   // le voleur ne vise que l'Apport, pas les tables du café
     if (floor.length) r.target = pick(floor).id;
     else { r.phase = 'flee'; r.path = ROB_PATH.map(q => q.slice()); }
     ev.rob = r;
@@ -2006,7 +1695,7 @@ function updateRobert(ev, dt) {
       G.colis = G.colis.filter(x => x !== c);
       r.item = { e: c.e, n: c.n, cat: c.cat, heavy: c.heavy, price: c.price, dest: c.dest };
       r.phase = 'flee'; r.path = ROB_PATH.map(q => q.slice());
-      fxAll(r.x, r.y - 40, 'Robert a pris ' + c.e, 'bad');
+      fxAll(r.x, r.y - 40, 'Le voleur a pris ' + c.e, 'bad');
     }
     return;
   }
@@ -2022,7 +1711,7 @@ function updateRobert(ev, dt) {
     const val = (r.item ? r.item.price : 8) + 10;
     G.evMiss++;
     malus(val, 1120, 1840);
-    toastAll('Robert est sorti avec ' + (r.item ? r.item.e + ' ' + r.item.n : 'un sac de dons') + ' : -' + val + ' €');
+    toastAll('Le voleur est sorti avec ' + (r.item ? r.item.e + ' ' + r.item.n : 'un sac de dons') + ' : -' + val + ' €');
     G.events = G.events.filter(e => e !== ev);
   }
 }
@@ -2056,16 +1745,18 @@ function hostCatch(p) {
   G.evOk++; comboUp();
   spawnColis(it, it.dest, [[r.x, r.y]]);
   earn(5, r.x, r.y - 40);
-  toastAll(p.name + ' a rattrapé Robert et récupéré ' + it.e + ' ' + it.n);
+  toastAll(p.name + ' a rattrapé le voleur et récupéré ' + it.e + ' ' + it.n);
 }
 function hostBuy(p, uid) {
   if (G.phase === 'play') return;
   const u = UPGRADES.find(u => u.id === uid); if (!u) return;
+  if (uid === 'bots' && net.code !== 'SOLO') return;             // les bots n'existent qu'en solo
   const lvl = G.upg[uid] || 0;
   if (lvl >= u.cost.length) return;
   const cost = u.cost[lvl];
   if (G.bank < cost) return;
   G.bank -= cost; G.upg[uid] = lvl + 1;
+  if (uid === 'bots') syncBots();
   writeSave();
   toastAll(p.name + ' a acheté : ' + u.name + ' (niveau ' + (lvl + 1) + ')');
   broadcast({ t: 'fx', x: 0, y: 0, text: '', kind: 'buy' }); S('buy');
@@ -2087,9 +1778,10 @@ function startDay() {
     p.station = null; p.res = null; p.run = false; p.frozen = 0; p.cheat = null; p.cheatCd = 0; p.riskUntil = 0; p.noCatchUntil = 0;
     const s = spawnPos(i++); p.x = s.x; p.y = s.y;
   }
-  if (net.code === 'SOLO' && !G.bots.length) G.bots = makeSoloBots();
+  syncBots();
   (G.bots || []).forEach((b,j) => { b.x=1015+j*90; b.y=830; b.target=null; b.carry=null; b.workUntil=0; b.station=null; b.res=null; b.task=null; b.taskLabel=''; b.taskStarted=0; b.taskDur=0; });
   makeEnc();
+  makeCafe();
   hostTick();
   if (G.day === 1 && !G.tuto) {
     const tips = [
@@ -2104,10 +1796,6 @@ function startDay() {
   }
 }
 function endDay(reason) {
-  if (zombieMode) {
-    zombieMode = false; zombieState = null;
-    $('zombieHud').style.display = 'none'; $('zombieExit').style.display = 'none';
-  }
   const goal = G.goal, rev = G.revenue, success = !reason && rev >= goal;
   const stars = !success ? 0 : rev >= goal * 2 ? 3 : rev >= goal * 1.5 ? 2 : 1;
   const chs = chState(), chDone = chs.filter(c => c.done);
@@ -2233,6 +1921,10 @@ function hostDone(p, st, data) {
       break;
     }
     case 'test':
+      if (res.item && res.item.clean) {                 // appareil du Repair Café : il marche, il était juste sale
+        spawnColis({ ...res.item, clean: false }, 'reserve', around(def)); earn(3, def.x, def.y - 40);
+        break;
+      }
       if (Math.random() < 0.5) { G.stock.repair.push(res.item); toastAll(p.name + ' : ' + res.item.e + ' en panne, direction l\'établi de réparation'); }
       else spawnColis(res.item, 'reserve', around(def));
       earn(2, def.x, def.y - 40);
@@ -2276,7 +1968,7 @@ function spawnColis(it, dest, slots) {
   const free = slots.filter(([x, y]) => !G.colis.some(c => Math.hypot(c.x - x, c.y - y) < 30));
   const [x, y] = free.length ? free[0] : pick(slots).map(v => v + rand(-12, 12));
   G.colis.push({ id: G.nextId++, e: String(it.e).slice(0, 8), n: String(it.n).slice(0, 40), cat, dest,
-    heavy: !!it.heavy, price, x, y, carriers: [] });
+    heavy: !!it.heavy, price, x, y, carriers: [], clean: !!it.clean });
 }
 function colisHostPos(c) {
   if (!c.carriers.length) return;
@@ -2319,7 +2011,7 @@ function hostDrop(p) {
     }
     if (s.bac === c.dest) {
       G.colis = G.colis.filter(x => x !== c);
-      const item = { e: c.e, n: c.n, cat: c.cat, heavy: c.heavy, price: c.price };
+      const item = { e: c.e, n: c.n, cat: c.cat, heavy: c.heavy, price: c.price, clean: !!c.clean };
       if (c.dest === 'magasin') { G.shelved.push(item); fxAll(s.x, s.y - 40, 'En rayon', 'good'); }
       else { G.stock[c.dest].push(item); fxAll(s.x, s.y - 40, 'Livré', 'good'); }
       tutoEvent('delivered', c);
@@ -2549,6 +2241,78 @@ function updateNPCs(dt) {
     }
   }
 }
+
+/* =================== REPAIR CAFÉ ===================
+   Une terrasse à l'air libre au-dessus de l'atelier vélo, avec deux tables et 3 bénévoles (des bots).
+   Les objets apparaissent DIRECTEMENT sur les tables (ils ne viennent pas des apports) : un bénévole en prend un,
+   traverse le magasin par la porte du haut et le dépose au bac DEEE. Ces appareils marchent : ils sont juste sales,
+   donc au DEEE il n'y a qu'à les nettoyer (pas de test ni de réparation), puis Réserve, étiquette, rayon, caisse. */
+const CAFE = {
+  tables: [{ slots: [[225, 69], [290, 69], [355, 69]] }, { slots: [[225, 139], [290, 139], [355, 139]] }],
+  homes: [[215, 104], [300, 104], [385, 104]],     // bien espacés : leurs étiquettes ne se chevauchent pas
+  path: [[430, 104], [470, 150], [580, 172], [580, 232], [790, 262], [850, 295], [895, 300], [925, 420], [925, 478]],   // de la terrasse au bac DEEE, par la porte du haut
+  every: [100, 160],      // un bénévole prépare un objet toutes les 100 à 160 s
+  maxPending: 3,          // pas plus de 3 appareils du café en attente en même temps
+  speed: 100,
+};
+const CAFE_ITEMS = [
+  { e: '🍞', n: 'Grille-pain' }, { e: '💡', n: 'Lampe de bureau' }, { e: '⏰', n: 'Radio-réveil' }, { e: '🌀', n: 'Ventilateur' },
+  { e: '🧇', n: 'Gaufrier' }, { e: '🥤', n: 'Mixeur' }, { e: '☕', n: 'Bouilloire' }, { e: '💿', n: 'Lecteur CD' },
+];
+function makeCafe() {
+  G.cafe = { bots: [], told: false };
+  if (G.tuto) return;
+  const cols = ['#2a9d8f', '#e9c46a', '#a47148'];
+  CAFE.homes.forEach((h, i) => G.cafe.bots.push({ id: 'cafe-' + (i + 1), x: h[0], y: h[1], dir: Math.PI / 2, color: cols[i], st: 'idle',
+    table: i % 2, next: rand(30, 55) + i * 35, carry: null, i: 0, mv: false }));
+}
+function cafeDeliver(b, c) {
+  G.colis = G.colis.filter(x => x !== c);
+  G.stock.deee.push({ e: c.e, n: c.n, cat: c.cat, heavy: false, price: c.price, clean: true });
+  fxAll(925, 452, 'Livré', 'good');
+  b.carry = null;
+  if (!G.cafe.told) { G.cafe.told = true; toastAll('☕ Le Repair Café t\'envoie un appareil : au DEEE, il n\'y a qu\'à le nettoyer.', true); }
+}
+function updateCafe(dt) {
+  const C = G.cafe; if (!C || !C.bots.length) return;
+  C.bots.forEach((b, idx) => {
+    const ox = b.x, oy = b.y, sp = CAFE.speed;
+    switch (b.st) {
+      case 'idle':
+        if (G.t >= b.next) {
+          const pending = G.stock.deee.filter(i => i.clean).length + G.colis.filter(c => c.clean && c.dest === 'deee').length;
+          if (pending >= CAFE.maxPending) { b.next = G.t + 10; break; }
+          const it = pick(CAFE_ITEMS);
+          spawnColis({ e: it.e, n: it.n + ' à nettoyer', cat: 'deee', heavy: false, price: randi(CATS.deee.min, CATS.deee.max), clean: true }, 'deee', CAFE.tables[b.table].slots);
+          b.carry = G.colis[G.colis.length - 1].id; b.st = 'fetch';
+        }
+        break;
+      case 'fetch': {
+        const c = G.colis.find(c => c.id === b.carry);
+        if (!c || c.carriers.length) { b.carry = null; b.st = 'home'; break; }          // un joueur a pris l'objet avant lui
+        if (moveTo(b, c.x, 104, sp, dt)) { c.carriers.push(b.id); b.st = 'out'; b.i = 0; }
+        break;
+      }
+      case 'out': {
+        const c = G.colis.find(c => c.id === b.carry);
+        if (!c || !c.carriers.includes(b.id)) { b.carry = null; b.st = 'back'; b.i = Math.min(b.i, CAFE.path.length - 1); break; }
+        const w = CAFE.path[b.i];
+        if (moveTo(b, w[0], w[1], sp, dt)) { b.i++; if (b.i >= CAFE.path.length) { cafeDeliver(b, c); b.st = 'back'; b.i = CAFE.path.length - 1; } }
+        break;
+      }
+      case 'back':
+        if (b.i >= 0) { const w = CAFE.path[b.i]; if (moveTo(b, w[0], w[1], sp, dt)) b.i--; } else b.st = 'home';
+        break;
+      case 'home': {
+        const h = CAFE.homes[idx];
+        if (moveTo(b, h[0], h[1], sp, dt)) { b.st = 'idle'; b.next = G.t + rand(CAFE.every[0], CAFE.every[1]); }
+        break;
+      }
+    }
+    const mv = Math.hypot(b.x - ox, b.y - oy); b.mv = mv > 0.05;
+    if (b.mv) b.dir = Math.atan2(b.y - oy, b.x - ox);
+  });
+}
 /* ----- Encadrants ----- */
 function makeEnc() {
   const n = Math.min(3, (G.day >= 6 ? 3 : G.day >= 3 ? 2 : 1) + (G.players.size >= 3 ? 1 : 0));
@@ -2638,7 +2402,7 @@ function forceEvent(type) {
   const ev = { id: G.evId++, type, left: def.time || 60, missed: false, lockBy: null };
   if (type === 'robert') {
     const r = { x: COWORKERS.robert.x, y: COWORKERS.robert.y, phase: 'grab', item: null, target: null, path: [] };
-    const floor = G.colis.filter(c => !c.carriers.length && c.y < 182);
+    const floor = G.colis.filter(c => !c.carriers.length && c.y < 182 && c.x > 832);   // le voleur ne vise que l'Apport, pas les tables du café
     if (floor.length) r.target = pick(floor).id;
     else { r.phase = 'flee'; r.path = ROB_PATH.map(q => q.slice()); }
     ev.rob = r;
@@ -2831,6 +2595,7 @@ function hostFrame(now, dt) {
     if (G.tuto) tutoUpdate(dt); else paceUpdate(dt);
     updateNPCs(dt);
     updateSoloBots(dt);
+    updateCafe(dt);
     updateEvents(dt);
     if (G.phase === 'play') { updateEncadrants(dt); updateCheats(dt); }
     if (G.phase === 'play' && G.timeLeft <= 0) { G.timeLeft = 0; endDay(); }
@@ -3372,7 +3137,7 @@ function renderDbg() {
     </div></div>
     <div class="dbgsec"><h4>Événements</h4><div class="row">
       ${dbgBtnHTML('event', '😴 Yanis', 'yanis')}${dbgBtnHTML('event', '📢 Océane', 'oceane')}
-      ${dbgBtnHTML('event', '⚡ Quentin', 'quentin')}${dbgBtnHTML('event', '🦹 Robert', 'robert')}
+      ${dbgBtnHTML('event', '⚡ Quentin', 'quentin')}${dbgBtnHTML('event', '🦹 Voleur', 'robert')}
       ${dbgBtnHTML('clearevents', '🧹 Tout nettoyer')}
     </div></div>
     <div class="dbgsec"><h4>Ouvrir un poste (mini-jeu)</h4>${sel('dbgSt')}
@@ -3785,7 +3550,7 @@ const myColor = () => { const p = view && view.players.find(p => p.id === net.my
 const form = () => (view && view.upg && view.upg.formation) || 0;
 function playerPos(id) {
   if (id === net.myId) return me;
-  return rp.get(id) || (view && view.players.find(p => p.id === id)) || null;
+  return rp.get(id) || (view && view.players.find(p => p.id === id)) || npcR.get('k' + id) || null;
 }
 function colisPos(c) {
   if (!c.carriers.length) return { x: c.x, y: c.y };
@@ -3801,7 +3566,7 @@ function applyView(v) {
   const mp = v.players.find(p => p.id === net.myId);
   if (mp && mp.driving && !me.driving && v.veh && performance.now() - (me.noDrive || 0) > 800) {
     me.driving = true; me.veh = { x: v.veh.x, y: v.veh.y, a: v.veh.a, v: 0, st: 0, dmg: v.veh.dmg | 0 };
-    showToast('Au volant : ZQSD ou flèches pour conduire (ou glisse ton doigt sur l\'écran). E pour descendre, E devant la maison pour décharger.', true);
+    showToast(IS_TOUCH ? 'Au volant : ◀ ▶ pour tourner, ▲ pour avancer, ▼ pour reculer. Le gros bouton orange descend du camion ou décharge devant la maison.' : 'Au volant : ZQSD ou flèches pour conduire. E pour descendre, E devant la maison pour décharger.', true);
   }
   else if (mp && !mp.driving && me.driving) { me.driving = false; me.veh = null; }
   if (v.phase !== lastPhase) { const prev = lastPhase; lastPhase = v.phase; phaseChanged(v.phase, prev); }
@@ -3927,11 +3692,11 @@ const TUTO_STEPS = [
   { id: 'hud', info: true, title: 'Lire l\'écran',
     text: 'En haut : le jour, l\'horloge (une vraie journée dure 5 minutes) et ta barre de recettes à atteindre. Le combo monte quand tu enchaînes sans erreur et multiplie tes gains. À gauche, « À faire » résume ce qui t\'attend dans chaque pôle.' },
   { id: 'events', info: true, title: 'Les imprévus',
-    text: 'Pendant une vraie journée, des collègues te sollicitent : Yanis s\'endort (DEEE bloqué), Océane lance un débat (Jouets bloqués), Quentin fait une RQ (à soulager vite, sinon la journée est perdue), Robert vole un colis (à rattraper).' },
+    text: 'Pendant une vraie journée, des collègues te sollicitent : Yanis s\'endort (DEEE bloqué), Océane lance un débat (Jouets bloqués), Quentin fait une RQ (à soulager vite, sinon la journée est perdue), un voleur dérobe un colis (à rattraper vite).' },
   { id: 'enc', info: true, title: 'Les encadrants',
     text: 'Les encadrants en gilet orange font des rondes. Si tu cours (Maj), lances un colis (F) ou bâcles une tâche pendant qu\'ils te voient (leur cône jaune), tu perds de l\'argent. Mieux vaut attendre qu\'ils s\'éloignent.' },
   { id: 'team', info: true, title: 'Seul ou à plusieurs',
-    text: 'Crée une partie pour jouer jusqu\'à 4 avec un code à 4 lettres : les gros objets se portent à deux. En solo, des bots t\'aident. L\'argent gagné paie des améliorations entre deux jours. Connecté à un compte, tes scores vont au classement.' },
+    text: 'Crée une partie pour jouer jusqu\'à 4 avec un code à 4 lettres : les gros objets se portent à deux. En solo, tu peux débloquer des bots d\'aide dans la boutique d\'améliorations. L\'argent gagné paie des améliorations entre deux jours. Connecté à un compte, tes scores vont au classement.' },
   { id: 'end', info: true, end: true, title: 'Tuto terminé, bravo !',
     text: 'Tu sais tout faire : accueillir, porter, traiter, étiqueter, mettre en rayon et encaisser. Prêt pour une vraie journée ?' },
 ];
@@ -4066,12 +3831,15 @@ $('tutoSkip').addEventListener('click', e => {
 /* =================== CANVAS =================== */
 const stage = $('stage'), canvas = $('game'), ctx = canvas.getContext('2d');
 let cw = 0, ch = 0, dpr = 1, scale = 1;
+/* Caméra : CAM_ZOOM > 1 = vue plus serrée (moins large). Au volant, on revient à l'ancienne largeur pour voir la route devant. */
+const CAM_ZOOM = 1.18;
+let baseScale = 1, camZoom = 1;
 function resize() {
   const r = stage.getBoundingClientRect();
   cw = r.width; ch = r.height; dpr = window.devicePixelRatio || 1;
   canvas.width = Math.round(cw * dpr); canvas.height = Math.round(ch * dpr);
   canvas.style.width = cw + 'px'; canvas.style.height = ch + 'px';
-  scale = clamp(Math.min(cw, ch) / 700, 0.55, 1.1);
+  baseScale = clamp(Math.min(cw, ch) / 700, 0.55, 1.1) * CAM_ZOOM; scale = baseScale * camZoom;
   measureInsets();
 }
 /* Espace pris par l'interface en haut et en bas : la caméra le réserve pour que le jeu ne passe jamais dessous */
@@ -4090,11 +3858,14 @@ function measureInsets() {
   insBotT = getComputedStyle(bu).display !== 'contents' ? Math.max(0, sr.bottom - bu.getBoundingClientRect().top) + 8 : 76;
   const tb = $('tutoBox');                                   // le panneau du tuto réserve aussi sa place en bas
   if (tb && !tb.hidden && tb.offsetHeight) insBotT = Math.max(insBotT, sr.bottom - tb.getBoundingClientRect().top + 8);
+  const vpd = $('vehPad'), vb = vpd && vpd.querySelector('button');       // idem pour les boutons du camion
+  if (vpd && !vpd.hidden && vb) insBotT = Math.max(insBotT, sr.bottom - vb.getBoundingClientRect().top + 8);
+  document.documentElement.style.setProperty('--pad-lift', (vpd && !vpd.hidden && vb) ? Math.round(sr.bottom - vb.getBoundingClientRect().top + 8) + 'px' : '0px');
 }
 function camYFor(py, chh, sc, it, ib) {
   const bh = (chh - it - ib) / sc;
   if (bh >= H) return -it / sc - (bh - H) / 2;
-  return clamp(py - bh / 2 - it / sc, -it / sc, H - (chh - ib) / sc);
+  return py - bh / 2 - it / sc;                 // le joueur reste au centre de la zone libre, même au bord de la carte
 }
 new ResizeObserver(resize).observe(stage);
 resize();
@@ -4145,21 +3916,6 @@ addEventListener('keydown', e => {
     return;
   }
   const k = e.key.toLowerCase();
-  if (zombieMode) {
-    if (k === 'escape') { e.preventDefault(); exitZombieMode(); return; }
-    if (k === 'f' && !e.repeat) {
-      e.preventDefault();
-      const hit = zombieAttack();
-      if (!hit && me.driving) exitTruck();
-      else if (!hit && !me.driving) doThrow();
-      return;
-    }
-    const playingZombie = view && view.phase === 'play';
-    if (playingZombie && ['arrowup','arrowdown','arrowleft','arrowright',' '].includes(k)) e.preventDefault();
-    keys.add(k);
-    if (playingZombie && !e.repeat && (k === 'e' || k === ' ' || k === 'enter')) doAction();
-    return;
-  }
   const playing = view && view.phase === 'play';
   if (playing && ['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(k)) e.preventDefault();
   keys.add(k);
@@ -4174,7 +3930,8 @@ function localPos(e) { const r = canvas.getBoundingClientRect(); return { x: e.c
 canvas.addEventListener('contextmenu', openBotPoleMenu);
 addEventListener('pointerdown', e => { if(!$('botPoleMenu')?.classList.contains('hidden') && !e.target.closest('#botPoleMenu')) closeBotPoleMenu(); });
 canvas.addEventListener('pointerdown', e => {
-  if ((!view || view.phase !== 'play') && !zombieMode || modalOpen) return;
+  if (!view || view.phase !== 'play' || modalOpen) return;
+  if (me.driving && vehPadOn()) return;                // au volant avec les boutons : un doigt posé sur la carte ne conduit pas
   const p = localPos(e);
   Object.assign(joy, { active: true, id: e.pointerId, sx: p.x, sy: p.y, dx: 0, dy: 0 });
   canvas.setPointerCapture(e.pointerId);
@@ -4193,7 +3950,7 @@ canvas.addEventListener('pointercancel', joyEnd);
 function poleAtWorld(x,y){return poleZones.find(z=>x>=z.x&&x<=z.x+z.w&&y>=z.y&&y<=z.y+z.h)||null;}
 function closeBotPoleMenu(){const m=$('botPoleMenu');if(m)m.classList.add('hidden');}
 function openBotPoleMenu(e){
-  if(!view||view.phase!=='play'||net.code!=='SOLO'||modalOpen||zombieMode)return;
+  if(!view||view.phase!=='play'||net.code!=='SOLO'||modalOpen)return;
   e.preventDefault();e.stopPropagation();const p=localPos(e);const wx=camX+p.x/scale,wy=camY+p.y/scale,z=poleAtWorld(wx,wy);if(!z){closeBotPoleMenu();return;}
   const m=$('botPoleMenu');if(!m)return;
   m.innerHTML='<div class="bpm-title"><span class="emo">🤖</span><span>Attribuer au pôle '+esc(POLES[z.k].label)+'</span><span class="grow"></span></div><div class="bpm-sub">Choisis le bot qui travaillera ici.</div>'+(G.bots||[]).map(b=>{const c=normalizeBotConfig(b.config),active=c.assignedPole===z.k,other=c.assignedPole&&c.assignedPole!==z.k;return '<button class="bpm-item" data-bot-pole="'+esc(b.id)+'" role="menuitem"><span class="bpm-dot" style="background:'+b.color+'"></span><span>'+esc(b.name)+'</span><span class="grow"></span><span class="bpm-check">'+(active?'✓':other?'↗':'')+'</span></button>';}).join('')+'<button class="bpm-item bpm-unassign" data-bot-pole="none" role="menuitem"><span>↺</span><span>Retirer les affectations à ce pôle</span></button>';
@@ -4204,12 +3961,10 @@ $('hudToggle').addEventListener('click', () => $('hud').classList.toggle('collap
 $('mClose').addEventListener('click', () => closeModal());
 $('createBtn').addEventListener('click', () => createGame());
 $('soloBtn').addEventListener('click', startSolo);
-$('zombieBtn').addEventListener('click', startZombieMode);
 $('customBtn').addEventListener('click', openCustomizer);
 $('customClose').addEventListener('click', closeCustomizer);
 $('customReset').addEventListener('click', resetAvatar);
 $('customSave').addEventListener('click', commitAvatar);
-$('zombieExit').addEventListener('click', exitZombieMode);
 $('actionBtn').addEventListener('click', () => doAction());
 $('joinBtn').addEventListener('click', joinGame);
 $('startBtn').addEventListener('click', () => send({ t: 'start' }));
@@ -4246,8 +4001,48 @@ addEventListener('keydown', e => { if (e.key === 'F2' && isAdmin()) { e.preventD
 $('shop').addEventListener('click', e => { const b = e.target.closest('[data-buy]'); if (b && !b.disabled) send({ t: 'buy', id: b.dataset.buy }); });
 if (innerWidth < 700 || innerHeight < 520) $('hud').classList.add('collapsed');
 
+/* ----- Zoom : bloqué sur toute la page -----
+   Avant, seul le canvas bloquait les gestes : on pouvait zoomer en pinçant le menu, la barre du haut ou les bulles,
+   puis le canvas empêchait de dézoomer. Quatre protections : viewport, touch-action sur html/body (CSS),
+   gestes iOS (gesturestart…) et pincement à deux doigts, plus un retour automatique à 100 % si le zoom arrive quand même. */
+['gesturestart', 'gesturechange', 'gestureend'].forEach(t => document.addEventListener(t, e => e.preventDefault(), { passive: false }));
+document.addEventListener('touchmove', e => { if (e.touches && e.touches.length > 1) e.preventDefault(); }, { passive: false });
+function resetZoom() {
+  const m = document.querySelector('meta[name=viewport]'); if (!m) return;
+  const full = m.content;
+  m.content = 'width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1';
+  setTimeout(() => { m.content = full; }, 150);
+}
+if (window.visualViewport) {
+  let lastFix = 0;
+  visualViewport.addEventListener('resize', () => { if (visualViewport.scale > 1.02 && performance.now() - lastFix > 800) { lastFix = performance.now(); resetZoom(); } });
+}
+
+/* ----- Commandes tactiles du camion : 4 boutons à maintenir (◀ ▶ à gauche, reculer / avancer à droite) ----- */
+const IS_TOUCH = (window.matchMedia && matchMedia('(pointer: coarse)').matches) || (navigator.maxTouchPoints || 0) > 0;
+const padKeys = { up: false, down: false, left: false, right: false };
+function padRelease() { for (const k in padKeys) padKeys[k] = false; document.querySelectorAll('#vehPad button.on').forEach(b => b.classList.remove('on')); }
+document.querySelectorAll('#vehPad [data-vk]').forEach(b => {
+  const k = b.dataset.vk;
+  const off = () => { padKeys[k] = false; b.classList.remove('on'); };
+  b.addEventListener('pointerdown', e => { e.preventDefault(); try { b.setPointerCapture(e.pointerId); } catch (x) {} padKeys[k] = true; b.classList.add('on'); });
+  ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(t => b.addEventListener(t, off));
+  b.addEventListener('contextmenu', e => e.preventDefault());
+});
+addEventListener('blur', padRelease);
+document.addEventListener('visibilitychange', () => { if (document.hidden) padRelease(); });
+function vehPadOn() { return !$('vehPad').hidden; }
+function syncVehPad() {
+  const show = !!(IS_TOUCH && me.driving && view && view.phase === 'play' && !modalOpen);
+  const pad = $('vehPad');
+  if (pad.hidden === show) { pad.hidden = !show; if (!show) padRelease(); }
+  document.body.classList.toggle('driving', !!me.driving);
+  document.body.classList.toggle('padon', show);
+}
+
 /* =================== LOGIQUE JOUEUR =================== */
 function update(dt) {
+  syncVehPad();
   if (me.driving && me.veh) {                     // au volant : on conduit, on ne marche pas
     vehStep(me.veh, dt, vehInput());
     me.x = me.veh.x; me.y = me.veh.y; me.dir = me.veh.a;
@@ -4370,7 +4165,7 @@ function renderAction() {
       key = 'drop' + c.id + (s ? s.id : '') + c.carriers.length;
     } else if (act.type === 'event') {
       const ev = act.ev;
-      if (ev.type === 'robert') html = '<kbd>E</kbd>Attraper Robert !';
+      if (ev.type === 'robert') html = '<kbd>E</kbd>Attraper le voleur !';
       else if (ev.busy) { html = EVENTS[ev.type].who + ' : un coéquipier s\'en occupe'; disabled = true; }
       else html = '<kbd>E</kbd>' + EVENT_ST['ev_' + ev.type].name;
       key = 'ev' + ev.id + ev.busy;
@@ -4550,10 +4345,10 @@ function renderSummary() {
   if (l.dbgUsed) bits.push('🐞 Journée de test' + (l.dbgRank ? ' (classée sur demande)' : ' — non classée'));
   $('sumProg').innerHTML = bits.join(' · ');
   $('bankTxt').textContent = eur(view.bank);
-  const key = JSON.stringify([view.bank, view.upg]);
+  const key = JSON.stringify([view.bank, view.upg, view.code === 'SOLO']);
   if (key !== shopKey) {
     shopKey = key;
-    $('shop').innerHTML = UPGRADES.map(u => {
+    $('shop').innerHTML = UPGRADES.filter(u => u.id !== 'bots' || view.code === 'SOLO').map(u => {
       const lvl = view.upg[u.id] || 0, max = u.cost.length, cost = u.cost[lvl];
       const full = lvl >= max, can = !full && view.bank >= cost;
       return `<div class="upg"><strong><span class="emo">${u.icon}</span>${u.name}</strong><span class="small">${u.desc}</span>
@@ -4597,19 +4392,15 @@ function frame(now) {
   if (now - insLast > 160) { insLast = now; measureInsets(); }
   const fk = Math.min(1, dt * 10);
   insTop += (insTopT - insTop) * fk; insBot += (insBotT - insBot) * fk;
-  const playing = zombieMode || (view && view.phase === 'play');
-  if (playing && !modalOpen) {
-    if (zombieMode) {
-      if (!(zombieState && zombieState.gameOver)) update(dt);
-      updateZombie(dt);
-    } else update(dt);
-  }
+  const playing = !!(view && view.phase === 'play');
+  if (playing && !modalOpen) update(dt);
   if (net.isHost && G) { try { hostFrame(now, dt); } catch (err) { if (hostFrame.lastErr !== err.message) { hostFrame.lastErr = err.message; console.error('hostFrame :', err); } } }
   if (view) {
     lerpMap(rp, view.players.filter(p => p.id !== net.myId), '', dt);
     lerpMap(npcR, view.donors, 'd', dt);
     lerpMap(npcR, view.customers, 'c', dt);
     lerpMap(npcR, (view.events || []).filter(e => e.type === 'robert').map(e => ({ id: e.id, x: e.rx, y: e.ry })), 'r', dt);
+    lerpMap(npcR, (view.cafe || []).map(b => ({ id: b.id, x: b.x, y: b.y, dir: b.dir })), 'k', dt);
     lerpMap(npcR, (view.enc || []).map(e => ({ id: e.id, x: e.x, y: e.y })), 'e', dt);
     for (const e of view.enc || []) {
       const r = npcR.get('e' + e.id); if (!r) continue;
@@ -4619,7 +4410,7 @@ function frame(now) {
     }
   }
   if (playing) {
-    if (!zombieMode && !net.isHost && now - lastPosSent > 66) {
+    if (!net.isHost && now - lastPosSent > 66) {
       lastPosSent = now;
       const m = { t: 'pos', x: Math.round(me.x), y: Math.round(me.y), dir: Math.round(me.dir * 100) / 100, moving: me.moving, run: !!(me.running && me.moving) };
       if (me.driving && me.veh) m.veh = { x: me.veh.x, y: me.veh.y, a: Math.round(me.veh.a * 100) / 100, v: Math.round(me.veh.v), dmg: Math.round(me.veh.dmg) };
@@ -4627,7 +4418,6 @@ function frame(now) {
     }
     computeAction(); syncThrowBtn();
   } else act = null;
-  if (zombieMode) updateZombieHud();
   renderAction();
   draw(now / 1000, now);
   requestAnimationFrame(frame);
@@ -4674,8 +4464,10 @@ let camX = 0, camY = 0, vw = 0, vh = 0;
 function draw(t, now) {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.fillStyle = '#5d7f4c'; ctx.fillRect(0, 0, cw, ch);
+  { const dtc = Math.min(0.05, (now - (draw.last || now)) / 1000); draw.last = now;
+    camZoom += ((me.driving ? 1 / CAM_ZOOM : 1) - camZoom) * (1 - Math.exp(-6 * dtc)); scale = baseScale * camZoom; }
   vw = cw / scale; vh = ch / scale;
-  camX = vw >= W ? -(vw - W) / 2 : clamp(me.x - vw / 2, 0, W - vw);
+  camX = vw >= W ? -(vw - W) / 2 : me.x - vw / 2;     // toujours centré, même à l'atelier vélo : le bord de carte laisse voir l'herbe
   camY = camYFor(me.y, ch, scale, insTop, insBot);
   ctx.setTransform(dpr * scale, 0, 0, dpr * scale, -camX * dpr * scale, -camY * dpr * scale);
   drawOutside(); drawFloor(); drawFurniture(); drawShelved(); drawWalls();
@@ -4685,6 +4477,7 @@ function draw(t, now) {
     drawStations(t);
     drawAssignedBotHeads();
     drawCoworkers(t);
+    drawCafeBots();
     drawEncadrants(t);
     view.donors.forEach(d => { const r = npcR.get('d' + d.id); if (r) drawNPC(r.x, r.y, Math.PI / 2, 0, d.c, d.f, d.s === 'wait' ? d.p : null, null); });
     view.customers.forEach(c => { const r = npcR.get('c' + c.id); if (r) drawNPC(r.x, r.y, r.dir || 0, r.walk, c.c, c.f, c.s === 'queue' ? c.p : null, c.b); });
@@ -4702,7 +4495,6 @@ function draw(t, now) {
     drawMinimap();
     drawGuide();
   }
-  if (zombieMode) drawZombieMode(now);
   if (joy.active) {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.fillStyle = 'rgba(255,255,255,.18)'; ctx.beginPath(); ctx.arc(joy.sx, joy.sy, 46, 0, 7); ctx.fill();
@@ -4715,7 +4507,7 @@ function drawOutside() {
   ctx.strokeStyle = 'rgba(255,255,255,.55)'; ctx.lineWidth = 3;
   for (let y = 1010; y < 1860; y += 70) { ctx.beginPath(); ctx.moveTo(120, y); ctx.lineTo(300, y); ctx.moveTo(500, y); ctx.lineTo(680, y); ctx.stroke(); }
   text('Parking', 400, 1400, 30, 'rgba(255,255,255,.25)');
-  [[120, 60], [300, 110], [520, 50], [700, 120], [40, 920], [780, 930]].forEach(([x, y]) => emoji('🌳', x, y, 46));
+  [[700, 120], [580, 60], [40, 920], [780, 930]].forEach(([x, y]) => emoji('🌳', x, y, 46));      // les arbres qui étaient là font place au Repair Café
   drawCity();
 }
 function drawFloor() {
@@ -4739,6 +4531,7 @@ function drawFloor() {
   }
   for (const z of rooms) if (z.label) text(z.label, z.lx, z.ly, 26, 'rgba(0,0,0,.2)');
   text('Tri', 1120, 800, 26, 'rgba(0,0,0,.14)');
+  drawCafe();
 }
 function drawWalls() {
   for (const w of walls) {
@@ -4975,6 +4768,22 @@ function drawFlights(now) {
     emoji(f.e, f.x1 + (f.x2 - f.x1) * k, f.y1 + (f.y2 - f.y1) * k - Math.sin(Math.PI * k) * 70, 24);
   }
 }
+/* Repair Café : bordure, banderole, décors, chemin vers la porte */
+function drawCafe() {
+  ctx.fillStyle = '#c9b78e'; ctx.fillRect(520, 150, 120, 32);                                    // petit chemin jusqu'à la porte du magasin
+  ctx.strokeStyle = '#b8793a'; ctx.lineWidth = 5; ctx.setLineDash([16, 12]); ctx.strokeRect(28, 28, 488, 150); ctx.setLineDash([]);
+  ctx.fillStyle = '#7a4a2a'; rr(150, 30, 250, 26, 10); ctx.fill();
+  ctx.strokeStyle = '#e9c46a'; ctx.lineWidth = 2; rr(150, 30, 250, 26, 10); ctx.stroke();
+  text('REPAIR CAFÉ', 275, 43, 19, '#fff', 800);
+  emoji('☕', 58, 70, 30); emoji('🛠️', 62, 112, 30); emoji('🧰', 440, 70, 30); emoji('🪛', 446, 112, 28); emoji('🔌', 100, 150, 26);
+  text('Entrée du magasin ↓', 580, 140, 11, 'rgba(60,40,20,.6)', 700);
+}
+function drawCafeBots() {
+  for (const b of view.cafe || []) {
+    const r = npcR.get('k' + b.id); if (!r) continue;
+    drawPlayer(r.x, r.y, r.dir || 0, b.mv ? r.walk : 0, b.color, 'Bénévole');
+  }
+}
 function drawCoworkers(t) {
   const FACE_EV = { yanis: '😴', oceane: '😤', quentin: '😖', robert: '😏' };
   const BUB = { yanis: '💤', oceane: '📢', quentin: '⚡', robert: '💰' };
@@ -4989,9 +4798,12 @@ function drawCoworkers(t) {
     }
     drawNPC(x, y, dir, walk, cw.color, ev ? FACE_EV[k] : '🙂', null, k === 'robert' && ev && ev.re ? [ev.re] : null);
     ctx.font = '700 12px ' + FONT;
-    const nm = EVENTS[k].who, w = ctx.measureText(nm).width + 10;
-    ctx.fillStyle = ev ? 'rgba(200,55,45,.9)' : 'rgba(0,0,0,.45)'; rr(x - w / 2, y + 18, w, 16, 8); ctx.fill();
-    text(nm, x, y + 26, 12, '#fff', 700);
+    const nm = (k === 'robert' && !ev) ? '' : EVENTS[k].who;      // le voleur n'a pas d'étiquette tant qu'il ne vole pas
+    if (nm) {
+      const w = ctx.measureText(nm).width + 10;
+      ctx.fillStyle = ev ? 'rgba(200,55,45,.9)' : 'rgba(0,0,0,.45)'; rr(x - w / 2, y + 18, w, 16, 8); ctx.fill();
+      text(nm, x, y + 26, 12, '#fff', 700);
+    }
     if (ev) {
       const by = y - 44 + Math.sin(t * 5) * 4;
       ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(x, by, 17, 0, 7); ctx.fill();
@@ -5043,7 +4855,9 @@ function drawGuide() {
 function drawMinimap() {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   const k = cw < 700 ? 0.04 : ch < 520 ? 0.038 : clamp(Math.min(cw, ch) / 5400, 0.04, 0.08);
-  const mw = W * k, mh = H * k, ox = 12, oy = ch - mh - (cw < 700 ? 84 : 12);
+  let gap = cw < 700 ? 84 : 12;
+  if (vehPadOn()) { const pb = $('vehPad').querySelector('button'); if (pb) gap = Math.max(gap, stage.getBoundingClientRect().bottom - pb.getBoundingClientRect().top + 8); }   // au-dessus des boutons du camion
+  const mw = W * k, mh = H * k, ox = 12, oy = ch - mh - gap;
   ctx.fillStyle = 'rgba(20,24,20,.7)'; rr(ox - 4, oy - 4, mw + 8, mh + 8, 8); ctx.fill();
   ctx.fillStyle = '#54595c'; ctx.fillRect(ox + CITY.x0 * k, oy, (CITY.x1 - CITY.x0) * k, CITY.y1 * k);
   ctx.fillStyle = '#9aa0a4';
@@ -5072,7 +4886,8 @@ function drawMinimap() {
   });
   ctx.strokeStyle = 'rgba(255,255,255,.7)'; ctx.lineWidth = 1;
   const vy0 = camY + insTop / scale, vh2 = (ch - insTop - insBot) / scale, y0 = Math.max(0, vy0);
-  ctx.strokeRect(ox + Math.max(0, camX) * k, oy + y0 * k, Math.min(vw, W) * k, Math.max(0, Math.min(vh2 - (y0 - vy0), H - y0)) * k);
+  const vx0 = Math.max(0, camX), vx1 = Math.min(W, camX + vw);
+  ctx.strokeRect(ox + vx0 * k, oy + y0 * k, Math.max(0, vx1 - vx0) * k, Math.max(0, Math.min(vh2 - (y0 - vy0), H - y0)) * k);
 }
 
 /* =================== MODALE =================== */
@@ -5120,7 +4935,7 @@ function openStation(stId, ctxData) {
   const sess = { alive: true, st: stId, errs: 0, faking: false }; session = sess;
   const card = $('card');
   card.classList.remove('win', 'shake');
-  $('mTitle').textContent = st.name;
+  $('mTitle').textContent = (stId === 'test' && ctxData && ctxData.item && ctxData.item.clean) ? 'Nettoyer un appareil' : st.name;
   $('mPole').textContent = POLES[st.pole].label; $('mPole').style.setProperty('--c', POLES[st.pole].color);
   $('mFb').textContent = ''; $('mFb').className = 'fb';
   $('mBody').innerHTML = '';
@@ -5739,6 +5554,51 @@ GAMES.caisse = (el, api, ctx) => {
 const ITEM_GAMES = {};
 
 /* ----- DEEE : variantes par appareil ----- */
+/* ----- Repair Café : appareil à simplement nettoyer ----- */
+ITEM_GAMES.deee_clean = (el, api, ctx) => {
+  const emo = ctx.item ? ctx.item.e : '🔌';
+  el.innerHTML = itemHead(ctx.item, 'Repair Café : cet appareil fonctionne, il est juste sale. Frotte-le (souris ou doigt) jusqu\'à ce qu\'il soit propre.') + `
+    <div class="scrub"><canvas class="toy" width="320" height="240"></canvas><canvas class="dirt" width="320" height="240"></canvas></div>
+    <div class="bar"><div class="fill"></div></div>
+    <div class="muted small" style="margin-top:6px" id="pct">Propre à 0 %</div>`;
+  const tc = el.querySelector('.toy'), dc = el.querySelector('.dirt');
+  const tx = tc.getContext('2d'), dx = dc.getContext('2d', { willReadFrequently: true });
+  const fill = el.querySelector('.fill'), pctEl = el.querySelector('#pct');
+  tx.fillStyle = '#e8e2d2'; tx.fillRect(0, 0, 320, 240);
+  tx.fillStyle = '#d6cdb6'; tx.beginPath(); tx.arc(160, 125, 95, 0, 7); tx.fill();
+  tx.font = '150px ' + EMO; tx.textAlign = 'center'; tx.textBaseline = 'middle'; tx.fillText(emo, 160, 130);
+  const blobs = 40 - 8 * form();
+  for (let i = 0; i < blobs; i++) {                      // poussière et graisse
+    dx.fillStyle = `rgba(${randi(95, 130)},${randi(85, 110)},${randi(60, 85)},${rand(.75, .92).toFixed(2)})`;
+    dx.beginPath(); dx.arc(rand(55, 265), rand(35, 210), rand(14, 34), 0, 7); dx.fill();
+  }
+  for (let i = 0; i < 160; i++) { dx.fillStyle = 'rgba(80,70,50,.85)'; dx.beginPath(); dx.arc(rand(40, 280), rand(25, 220), rand(1.5, 4), 0, 7); dx.fill(); }
+  const count = () => { const d = dx.getImageData(0, 0, 320, 240).data; let n = 0; for (let i = 3; i < d.length; i += 16) if (d[i] > 40) n++; return n; };
+  const initial = count() || 1;
+  let down = false, last = null, lastCheck = 0, finished = false, lastSnd = 0;
+  const pos = e => { const r = dc.getBoundingClientRect(); return { x: (e.clientX - r.left) * 320 / r.width, y: (e.clientY - r.top) * 240 / r.height }; };
+  function check() {
+    const rem = count() / initial, pct = Math.round((1 - rem) * 100);
+    fill.style.width = pct + '%'; pctEl.textContent = 'Propre à ' + pct + ' %';
+    if (rem < 0.06 && !finished) { finished = true; dx.clearRect(0, 0, 320, 240); fill.style.width = '100%'; S('small'); setTimeout(() => { if (api.alive) api.done(); }, 350); }
+  }
+  function scrub(p) {
+    if (finished) return;
+    dx.globalCompositeOperation = 'destination-out';
+    dx.strokeStyle = '#000'; dx.lineWidth = 40; dx.lineCap = 'round';
+    dx.beginPath();
+    if (last) { dx.moveTo(last.x, last.y); dx.lineTo(p.x, p.y); } else { dx.moveTo(p.x, p.y); dx.lineTo(p.x + .1, p.y); }
+    dx.stroke(); dx.globalCompositeOperation = 'source-over';
+    last = p;
+    const now = performance.now();
+    if (now - lastSnd > 140) { lastSnd = now; S('pump'); }
+    if (now - lastCheck > 120) { lastCheck = now; check(); }
+  }
+  dc.addEventListener('pointerdown', e => { down = true; last = null; dc.setPointerCapture(e.pointerId); scrub(pos(e)); });
+  dc.addEventListener('pointermove', e => { if (down) scrub(pos(e)); });
+  const up = () => { down = false; last = null; check(); };
+  dc.addEventListener('pointerup', up); dc.addEventListener('pointercancel', up);
+};
 ITEM_GAMES.deee_tv = (el, api, ctx) => {
   const channels = shuffle(['TF1', 'France 2', 'M6', 'Arte', 'France 5', 'TMC']).slice(0, 4);
   const order = channels.slice().sort((a,b) => a.localeCompare(b, 'fr'));
@@ -5987,6 +5847,7 @@ ITEM_GAMES.velo_brake = (el, api, ctx) => {
 
 /* ----- Sélection automatique : objet -> variante ----- */
 function itemVariantKey(stId, item) {
+  if (stId === 'test' && item && item.clean) return 'deee_clean';
   const n = ((item && item.n) || '').toLowerCase();
   const e = (item && item.e) || '';
   if (stId === 'test' || stId === 'repair') {
@@ -6224,9 +6085,9 @@ function vehStep(v, dt, inp) {
   v.x = clamp(v.x, 30, W - 30); v.y = clamp(v.y, 30, H - 30);
 }
 function vehInput() {
-  const inp = { up: keys.has('z') || keys.has('w') || keys.has('arrowup'), down: keys.has('s') || keys.has('arrowdown'),
-    left: keys.has('q') || keys.has('a') || keys.has('arrowleft'), right: keys.has('d') || keys.has('arrowright') };
-  if (joy.active) {                                    // au doigt ou à la souris : on penche le joystick
+  const inp = { up: keys.has('z') || keys.has('w') || keys.has('arrowup') || padKeys.up, down: keys.has('s') || keys.has('arrowdown') || padKeys.down,
+    left: keys.has('q') || keys.has('a') || keys.has('arrowleft') || padKeys.left, right: keys.has('d') || keys.has('arrowright') || padKeys.right };
+  if (joy.active && !vehPadOn()) {                     // avec les boutons à l'écran, le joystick ne conduit plus                                    // au doigt ou à la souris : on penche le joystick
     if (joy.dy < -0.35) inp.up = true; else if (joy.dy > 0.35) inp.down = true;
     if (joy.dx < -0.35) inp.left = true; else if (joy.dx > 0.35) inp.right = true;
   }
@@ -6452,7 +6313,7 @@ requestAnimationFrame(frame);
 })();
 </script>
 
-<div id="game-version" aria-label="Version du jeu">(1.6.0)</div>
+<div id="game-version" aria-label="Version du jeu">(1.8.1)</div>
 <style>
 #game-version {
   position: fixed;
